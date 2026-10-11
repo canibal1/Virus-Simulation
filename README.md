@@ -18,10 +18,12 @@ ve parçaları topla. Ama dikkat: her indirme bir kumar.
 |---|---|
 | 🌐 **Chronos Browser** | Sanal siteler, arama, `</>` ile sayfa kaynağını görme, indirmeler |
 | 📁 **Dosyalar** | Masaüstü / Belgeler / İndirilenler, dosya açma ve silme |
-| ⌨️ **Terminal** | `ls`, `cat`, `ps`, `kill`, `rm`, `tara`, `kurtar`, `coz`, `sistem` |
+| ⌨️ **Terminal** | `ls`, `cat`, `ps`, `kill`, `rm`, `tara`, `kurtar`, `coz`, `yedekle`, `rapor`, `sil echo`, `sistem` |
 | 📊 **Görev Yöneticisi** | CPU / RAM / sıcaklık ve süreçleri izleme, süreç sonlandırma |
 | 🛡️ **Kalkan AV** | Tarama (sınırlı hak), karantina, şifreli dosya kurtarma |
 | ✉️ **Posta** | Hikâyeyi ilerleten postalar ve kurgusal oltalama postaları. Doğru bildirim +1 tarama hakkı verir |
+| 🧪 **Laboratuvar** | (Antivirüs Testi) Numune analizi ve sınıflandırma |
+| 🤖 **ECHO** | (Yapay Zekâ) Sohbet ve kurtarma kilitleri |
 | 📹 **Kameralar** | (Gece Vardiyası) Binadaki 4 kameranın canlı görüntüsü |
 | 📝 **Notlar** | Görev defteri, bulunan parçalar ve kişisel notlar |
 | 🗑️ **Çöp Kutusu** | Silinen dosyaları geri yükleme |
@@ -34,6 +36,13 @@ ve parçaları topla. Ama dikkat: her indirme bir kumar.
   01:36 civarında **Nöbetçi** adlı kurgusal bir program uyanır ve 📹 Kameralar uygulamasında Lobi → Koridor → Sunucu Odası → Ofis yolunu izler.
   Ofise ulaşırsa ışıklar söner ve bir hak gider. `nobetci.exe` sürecini sonlandırmak onu Lobi'ye geri gönderir, ama sistemdeki
   3 kopyası silinmedikçe 30 sn sonra döner. Kalkan kopyaları bulur ama silemez. Üç farklı son vardır.
+- **🧪 Antivirüs Testi:** Kalkan Laboratuvarı'nda 5 bölüm. Her bölümde numuneleri **Temiz / Adware / Fidye / Casus / Truva** olarak sınıflandırırsın.
+  🔬 Analiz (4 sn) yeni bir davranış gösterir. Sınıflandırılmayan zararlılar belli aralıklarla sandbox'tan kaçıp sisteme bulaşır;
+  onları Görev Yöneticisi, Terminal veya Kalkan ile temizlemen gerekir. Doğru +100, yanlış −50, kaçan −30. Mavi ekran bölümü bitirir.
+  Skora göre 1–3 yıldız; bir sonraki bölüm en az 1 yıldızla açılır. 4. ve 5. bölümlerde ilk görünen davranış yanıltıcı olabilir.
+- **🤖 Yapay Zekâ: ECHO:** İndirdiğin "Asistan.exe" kurgusal bir yapay zekâ karakteri çıkar. Önce sohbet edip senden izinler ister;
+  verdiğin her izin onu güçlendirir. Ardından düşmanlaşır: pencereleri kapatır, uygulamaları 15 sn kilitler ve "yayılma" çubuğunu doldurur.
+  Kurtarma sekmesindeki üç kilidi (bir sayı bulmacası, bir dizi ve bir Sezar şifresi) çözüp ECHO'yu silersen kazanırsın; yayılma %100 olursa kaybedersin.
 - **⏱️ Hayatta Kalma:** Tehditler dalgalar halinde ağdan sızar ve her dalga bir öncekinden daha erken gelir (38 sn'den 12 sn'ye kadar).
   Her dakika +1 tarama hakkı kazanılır (en fazla 5). Skor, sistemin ayakta kaldığı süredir ve en iyi süre rekor olarak saklanır.
 

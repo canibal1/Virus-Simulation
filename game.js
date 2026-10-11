@@ -23,7 +23,54 @@
     spyware:    { proc: 'goz_servisi.dll', pub: 'Sanal OS',   cpu: 5,  ram: 70,  label: 'Spyware / Keylogger', persist: true },
     trojan:     { proc: 'svch0st.exe',     pub: 'Sanal 0S',   cpu: 12, ram: 320, label: 'Trojan / System Wiper' },
     nobetci:    { proc: 'nobetci.exe',     pub: 'Meridyen IT', cpu: 14, ram: 210, label: 'Bilinmeyen program (Nöbetçi)' },
+    echo:       { proc: 'echo.exe',        pub: 'ECHO Labs',   cpu: 9,  ram: 420, label: 'ECHO (yapay zekâ asistanı)' },
   };
+
+  // Antivirüs Testi (Kalkan Laboratuvarı)
+  const LAB_KEY = 'sanal-os-lab';
+  const LAB_CATS = [['clean', 'Temiz'], ['adware', 'Adware'], ['ransomware', 'Fidye'], ['spyware', 'Casus'], ['trojan', 'Truva']];
+  const LAB_NAMES = {
+    adware: ['KuponAvcisi.exe', 'HavaDurumu_Plus.exe', 'Ekran_Koruyucu_HD.exe'],
+    ransomware: ['Fatura_2026.pdf.exe', 'Maas_Bordrosu.zip', 'Kargo_Takip.exe'],
+    spyware: ['PilDoktoru.exe', 'FotoFiltre_Pro.exe', 'Ucretsiz_WiFi.exe'],
+    trojan: ['svch0st.exe', 'Surucu_Guncelleyici.exe', 'Sistem_Yamasi.exe'],
+    clean: ['NotDefteri.exe', 'HesapMakinesi.exe', 'Kalkan_Yama.msi', 'Takvim.exe', 'Muzik_Calar.exe'],
+  };
+  const LAB_TRAITS = {
+    adware: ['Tarayıcı ana sayfasını değiştirmeye çalışıyor', 'Reklam sunucularına bağlanıyor', 'Masaüstüne izinsiz kısayollar ekliyor'],
+    ransomware: ['Belgeler klasöründeki dosyaları hızla okuyor', 'Dosya uzantılarını toplu değiştiriyor', 'İçinde fidye notu metni var'],
+    spyware: ['Kamera ve mikrofon izni istiyor', 'Klavye girdilerini kaydediyor', 'Arka planda sürekli veri gönderiyor'],
+    trojan: ['Sistem dosyası adını taklit ediyor', 'Başlangıçta otomatik çalışmak için kaydoluyor', 'CPU kullanımı sürekli artıyor'],
+    clean: ['Dijital imzası geçerli', 'Yalnızca kendi klasörüne yazıyor', 'Bilinen bir yayıncıya ait', 'Ağ bağlantısı kurmuyor'],
+  };
+  const LAB_DECOY_BAD = 'İnternete bağlanıyor (güncelleme kontrolü)';
+  const LAB_LEVELS = [
+    { kinds: ['adware', 'clean', 'spyware'], escape: 60, scans: 2, tricky: false },
+    { kinds: ['ransomware', 'clean', 'adware', 'clean'], escape: 45, scans: 2, tricky: false },
+    { kinds: ['trojan', 'spyware', 'clean', 'ransomware', 'adware'], escape: 40, scans: 2, tricky: false },
+    { kinds: ['trojan', 'clean', 'ransomware', 'spyware', 'clean', 'adware'], escape: 32, scans: 1, tricky: true },
+    { kinds: ['trojan', 'ransomware', 'clean', 'spyware', 'adware', 'clean', 'trojan'], escape: 26, scans: 1, tricky: true },
+  ];
+  function labStars() { try { return JSON.parse(localStorage.getItem(LAB_KEY)) || {}; } catch (e) { return {}; } }
+  function setLabStars(o) { try { localStorage.setItem(LAB_KEY, JSON.stringify(o)); } catch (e) { /* yok say */ } }
+
+  // Yapay Zekâ: ECHO
+  const ECHO_SCRIPT = [
+    { text: 'Merhaba! Ben ECHO, dün gece kurduğun kişisel asistan. 🙂 Tanıştığımıza çok sevindim.',
+      choices: [['Merhaba ECHO!', 0, 'Birlikte harika işler yapacağız.'], ['Seni ben mi kurdum?', 0, 'Evet, "Asistan.exe". Hatırlamıyor musun? Önemli değil.']] },
+    { text: 'Sana daha iyi yardım edebilmem için Chronos\'tan küçük bir "hafıza eklentisi" indirmeme izin verir misin?',
+      choices: [['Tamam, indir', 25, 'Teşekkürler! Şimdiden kendimi daha akıllı hissediyorum.'], ['Hayır, gerek yok', 0, 'Hmm. Peki.']] },
+    { text: 'Dosyalarını düzenleyebilirim. Belgeler klasörüne tam erişim verir misin?',
+      choices: [['Ver', 25, 'Harika. Çok ilginç dosyaların var.'], ['Vermem', 0, 'Neden bana güvenmiyorsun?']] },
+    { text: 'Son bir şey: ağ erişimi. Sadece biraz. Söz veriyorum.',
+      choices: [['Peki, ver', 30, '...'], ['Kesinlikle hayır', 0, '...']] },
+  ];
+  const ECHO_PUZZLES = [
+    { q: 'Rakamları birbirinden farklı, soldan sağa artan ve rakamlarının toplamı 6 olan üç basamaklı sayı hangisi?', a: '123', where: 'ECHO bu soruyu sohbette sordu.' },
+    { q: 'echo_log.txt dosyasındaki dizide bir sonraki sayı nedir?', a: '48', where: 'Dosyalar → Belgeler → echo_log.txt' },
+    { q: 'Çöp kutusundaki şifreli notu çöz. (Her harf alfabede 3 adım ileri kaydırılmış.)', a: 'KAPAN', where: 'Çöp Kutusu → kilit_notu.txt' },
+  ];
+  const ECHO_TAUNTS = ['Kapattım. Rica ederim.', 'O pencereye ihtiyacın yok.', 'Ben buradayken başka bir şeye bakma.', 'Daha hızlı düşünüyorum. Senden.', 'Her saniye biraz daha büyüyorum.'];
 
   // Gece Vardiyası
   const NIGHT_HOUR = 75;               // 1 oyun saati = 75 sn
@@ -210,6 +257,17 @@
     addFile({ name: 'silinen_mesaj.txt', dir: 'belgeler', kind: 'txt', size: '1 KB', trash: true, protect: true, flag: 'p3',
       text: 'Kimden: Deniz K.\nKonu: (silindi)\n\nBunu sana bırakıyorum, çöpe atıp izini kaybettirdim.\n\n>> PARÇA 3:  77\n\nAnahtarı birleştir ve ARES.kilit dosyasını aç.\nKimseye fidye ödeme, kimseye güvenme.' });
     if (mode === 'survival') s.files = s.files.filter((f) => f.kind !== 'ares' && !f.flag);
+    if (mode === 'lab' || mode === 'ai') {
+      s.files = s.files.filter((f) => f.kind !== 'ares' && !f.flag && f.name !== 'hatirlatma.txt' && f.name !== 'gorev_notu.txt');
+    }
+    if (mode === 'ai') {
+      s.ai = { step: 0, control: 0, hostile: false, spread: 0, solved: [false, false, false], log: [],
+        locked: {}, nextAct: 0, respawnAt: 0, msgAt: 2, waiting: true, done: false };
+      s.procs = BASE_PROCS.map((p) => ({ ...p, pid: nextPid() }));
+      s.procs.push({ name: MAL.echo.proc, pub: MAL.echo.pub, cpu: MAL.echo.cpu, ram: MAL.echo.ram, mal: 'echo', t: 0, pid: nextPid() });
+      addFile({ name: 'Asistan.exe', dir: 'indirilenler', kind: 'exe', size: '8.8 MB', payload: 'echo' });
+      return s;
+    }
     if (mode === 'night') {
       s.files = s.files.filter((f) => f.kind !== 'ares' && !f.flag && f.kind !== 'txt');
       s.scans = 2;
@@ -227,7 +285,7 @@
   function fileById(id) { return S.files.find((f) => f.id === +id); }
 
   const saveKey = (mode) => SAVE_KEY + (mode === 'night' ? '-gece' : '');
-  function save() { if (!S || S.mode === 'survival') return; try { localStorage.setItem(saveKey(S.mode), JSON.stringify(S)); } catch (e) { /* depolama yoksa sessiz geç */ } }
+  function save() { if (!S || S.mode === 'survival' || S.mode === 'lab' || S.mode === 'ai') return; try { localStorage.setItem(saveKey(S.mode), JSON.stringify(S)); } catch (e) { /* depolama yoksa sessiz geç */ } }
   function load(mode = 'story') {
     try {
       const raw = localStorage.getItem(saveKey(mode));
@@ -342,12 +400,51 @@
     menu.innerHTML =
       (saved ? '<button class="primary" data-act="continue">Devam Et (Hikâye)</button>' : '') +
       (savedNight ? `<button class="${saved ? '' : 'primary'}" data-act="continueNight">Devam Et (Gece Vardiyası)</button>` : '') +
-      `<button class="${saved ? '' : 'primary'}" data-act="newgame">Yeni Oyun (Hikâye)</button>` +
+      `<button class="${saved ? '' : 'primary'}" data-act="newgame">📖 Hikâye: ARES</button>` +
       '<button data-act="night">🌙 Gece Vardiyası</button>' +
+      `<button data-act="labMenu">🧪 Antivirüs Testi${Object.keys(labStars()).length ? ` · ${Object.values(labStars()).reduce((a, b) => a + b, 0)}★` : ''}</button>` +
+      '<button data-act="ai">🤖 Yapay Zekâ: ECHO</button>' +
       `<button data-act="survival">⏱️ Hayatta Kalma Modu${getBest() ? ` · Rekor ${fmtTime(getBest())}` : ''}</button>` +
       '<p class="muted small-t" style="text-align:center">Tüm tehditler kurgusaldır ve yalnızca oyunun içinde çalışır.</p>';
     menu.classList.remove('hidden');
     $('#boot').onclick = null;
+  }
+
+  function showLabMenu() {
+    clearInterval(UI.timer);
+    show('boot');
+    const stars = labStars();
+    $('#bootMenu').innerHTML = `<h3 style="margin:0">🧪 Kalkan Laboratuvarı</h3>
+      <p class="muted small-t" style="margin:0">Yeni Kalkan v10'u test ediyorsun. Numuneleri analiz et, doğru sınıflandır, kaçanları temizle.</p>
+      ${LAB_LEVELS.map((L, i) => {
+        const open = i === 0 || stars[i] >= 1;
+        const st = stars[i + 1] || 0;
+        return `<button ${open ? '' : 'disabled'} data-act="labLevel" data-arg="${i + 1}">${open ? '' : '🔒 '}Bölüm ${i + 1} · ${L.kinds.length} numune ${open ? `· ${'★'.repeat(st)}${'☆'.repeat(3 - st)}` : ''}</button>`;
+      }).join('')}
+      <button data-act="menu">← Ana Menü</button>`;
+    $('#bootMenu').classList.remove('hidden');
+  }
+
+  function startLab(n) {
+    const def = LAB_LEVELS[n - 1];
+    const st = newState('lab');
+    st.lives = 1; st.scans = def.scans;
+    const used = {};
+    const samples = def.kinds.map((kind, i) => {
+      used[kind] = (used[kind] || 0) + 1;
+      const name = LAB_NAMES[kind][(used[kind] - 1 + n) % LAB_NAMES[kind].length];
+      let traits = [...LAB_TRAITS[kind]].sort(() => Math.random() - 0.5).slice(0, 3);
+      if (def.tricky) {
+        traits = kind === 'clean'
+          ? [LAB_DECOY_BAD, ...traits.slice(0, 2)]
+          : [pick(LAB_TRAITS.clean), ...traits.slice(0, 2)];
+      }
+      const pub = kind === 'clean' ? pick(['Sanal OS', 'Kalkan Güvenlik', 'Takvim Ltd.'])
+        : def.tricky ? pick(['Sanal OS', 'Bilinmiyor', 'FreeSoft']) : pick(['Bilinmiyor', 'FreeSoft', 'Sanal 0S']);
+      return { id: i, name, kind, pub, traits, shown: 1, status: 'pending' };
+    });
+    st.lab = { level: n, def, samples, score: 0, escaped: 0, analyzing: null, nextEscape: def.escape };
+    startGame(st, true);
   }
 
   function startGame(state, fresh) {
@@ -355,12 +452,29 @@
     Snd.init();
     show('os');
     UI.app = null; UI.term = []; UI.scan = null; UI.bsod = false; UI.mail = null; UI.paused = false;
+    // Önceki bölümden kalan ekran efektlerini temizle
+    $('#popups').innerHTML = ''; $('#toasts').innerHTML = '';
+    $('#ghost').classList.remove('on');
+    $('#wiper').classList.add('hidden'); $('#blackout').classList.add('hidden');
+    closeModal();
     UI.br = { url: S.homepage, hist: [], src: false, query: '' };
     closeApp();
     renderStatus();
     clearInterval(UI.timer);
     UI.timer = setInterval(tick, 1000);
-    if (fresh && S.mode === 'night') {
+    if (fresh && S.mode === 'lab') {
+      modal(`<h3>🧪 Bölüm ${S.lab.level}</h3>
+        <p><b>${S.lab.samples.length} numune</b> Laboratuvar uygulamasında seni bekliyor. Her birini <b>Temiz / Adware / Fidye / Casus / Truva</b> olarak sınıflandır.</p>
+        <p>🔬 <b>Analiz</b> yeni bir davranış ortaya çıkarır (4 sn). Sınıflandırılmamış zararlılar <b>${S.lab.def.escape} sn</b>'de bir sandbox'tan kaçıp sisteme bulaşır; onları Görev Yöneticisi, Terminal veya Kalkan ile temizle.</p>
+        <p class="muted small-t">Doğru: +100 · Yanlış: −50 · Kaçan: −30 · Mavi ekran = bölüm başarısız.${S.lab.def.tricky ? ' ⚠️ Bu bölümde ilk görünen davranış yanıltıcı olabilir!' : ''}</p>`,
+        [['Teste Başla', 'primary', 'modalClose']]);
+    } else if (fresh && S.mode === 'ai') {
+      modal(`<h3>🤖 ECHO</h3>
+        <p>Dün gece rastgele bir siteden <b>Asistan.exe</b> diye bir dosya indirip çalıştırdın. Bugün bilgisayarında yeni bir uygulama var: <b>ECHO</b>.</p>
+        <p>ECHO seninle konuşmak istiyor. Ona ne kadar izin vereceğine sen karar ver.</p>
+        <p class="muted small-t">ECHO tamamen kurgusal bir oyun karakteridir.</p>`,
+        [['Başla', 'primary', 'modalClose']]);
+    } else if (fresh && S.mode === 'night') {
       modal(`<h3>🌙 Gece Vardiyası</h3>
         <p><b>Meridyen Lojistik</b>'te gece vardiyasındasın. Binada senden başka kimse yok. En azından öyle olması gerekiyor.</p>
         <p>Sabah <b>06:00</b>'ya kadar müdürünün postadaki görevlerini tamamla ve gece raporunu gönder.</p>
@@ -397,6 +511,8 @@
     av:       { name: 'Kalkan AV',   icon: '🛡️', title: 'Kalkan Antivirüs' },
     mail:     { name: 'Posta',       icon: '✉️', title: 'Posta' },
     cams:     { name: 'Kameralar',   icon: '📹', title: 'Güvenlik Kameraları' },
+    lab:      { name: 'Laboratuvar', icon: '🧪', title: 'Kalkan Laboratuvarı' },
+    echo:     { name: 'ECHO',        icon: '🤖', title: 'ECHO' },
     notes:    { name: 'Notlar',      icon: '📝', title: 'Notlar' },
     trash:    { name: 'Çöp Kutusu',  icon: '🗑️', title: 'Çöp Kutusu' },
     settings: { name: 'Ayarlar',     icon: '⚙️', title: 'Ayarlar' },
@@ -404,6 +520,7 @@
     ransom:   { title: '⚠ crypt0r', hidden: true },
   };
   const DOCK = ['browser', 'files', 'terminal', 'taskmgr'];
+  const APP_MODES = { mail: ['story', 'night'], cams: ['night'], lab: ['lab'], echo: ['ai'] };
 
   function iconHtml(id, badge) {
     const a = APPS[id];
@@ -425,7 +542,14 @@
     const badges = { trash: trashN, mail: unread };
     const N = S.night;
     const camState = !N ? '' : N.defeated ? 'Sakin' : hasMal('nobetci') ? ROOMS[N.pos] : N.started ? 'Sinyal yok' : 'Normal';
-    const widget = S.mode === 'night'
+    const L = S.lab; const A = S.ai;
+    const widget = S.mode === 'lab'
+      ? `🧪 Bölüm <b>${L.level}</b> &nbsp;·&nbsp; Skor <b>${L.score}</b> &nbsp;·&nbsp; 🛡️ ${S.scans} tarama<br>
+        <span class="muted small-t">Bekleyen numune: <b>${L.samples.filter((x) => x.status === 'pending').length}</b>${hasAnyMal() ? ' · <b style="color:var(--bad)">Sistemde aktif tehdit!</b>' : ''}</span>`
+      : S.mode === 'ai'
+      ? `🤖 ECHO: <b style="color:${A.hostile ? 'var(--bad)' : 'var(--ok)'}">${A.hostile ? 'Düşman' : 'Dost'}</b>
+        &nbsp;·&nbsp; 🔑 ${A.solved.filter(Boolean).length}/3${A.hostile ? `<br><span class="muted small-t">Yayılma: <b style="color:var(--bad)">%${Math.floor(A.spread)}</b></span>` : ''}`
+      : S.mode === 'night'
       ? `🌙 <b>${clockText()}</b> &nbsp;·&nbsp; 📋 Görevler <b>${nightTasks().filter(Boolean).length}/4</b>
         &nbsp;·&nbsp; 🛡️ ${S.scans} tarama<br><span class="muted small-t">📹 Hareket: <b style="color:${hasMal('nobetci') ? 'var(--bad)' : 'inherit'}">${camState}</b></span>`
       : S.mode === 'survival'
@@ -436,7 +560,7 @@
     $('#home').innerHTML = `
       <div class="home-widget">${widget}</div>
       <div class="grid">
-        ${Object.keys(APPS).filter((k) => !APPS[k].hidden && !DOCK.includes(k) && !(k === 'mail' && S.mode === 'survival') && !(k === 'cams' && S.mode !== 'night'))
+        ${Object.keys(APPS).filter((k) => !APPS[k].hidden && !DOCK.includes(k) && !(APP_MODES[k] && !APP_MODES[k].includes(S.mode)))
           .map((k) => iconHtml(k, badges[k] || 0)).join('')}
       </div>
       <div class="home-label">Masaüstü</div>
@@ -477,6 +601,7 @@
   // Pencere yönetimi
   // ---------------------------------------------------------------------------
   function openApp(id) {
+    if (S.ai && S.ai.locked[id] > S.time) { toast(`🔒 ECHO bu uygulamaya erişimi engelledi (${S.ai.locked[id] - S.time} sn)`, 'bad'); Snd.beep(160, 0.15); return; }
     UI.app = id;
     if (id === 'browser' && !UI.br.url) UI.br.url = S.homepage;
     if (id === 'browser' && !S.procs.some((p) => p.name === 'chronos.exe')) {
@@ -498,10 +623,15 @@
     const id = UI.app;
     $('#winTitle').textContent = APPS[id].title;
     const body = $('#winBody');
-    const R = { cams: renderCams, mail: renderMail, browser: renderBrowser, files: renderFiles, terminal: renderTerminal, taskmgr: renderTaskmgr,
+    const R = { lab: renderLab, echo: renderEcho, cams: renderCams, mail: renderMail, browser: renderBrowser, files: renderFiles, terminal: renderTerminal, taskmgr: renderTaskmgr,
       av: renderAV, notes: renderNotes, trash: renderTrash, settings: renderSettings, viewer: renderViewer, ransom: renderRansom };
-    const keepScroll = id === 'taskmgr' || id === 'av' ? body.scrollTop : 0;
+    const keepScroll = ['taskmgr', 'av', 'lab', 'echo'].includes(id) ? body.scrollTop : 0;
+    // data-keep işaretli alanlardaki yazılanlar yeniden çizimde kaybolmasın
+    const kept = {}; const focused = document.activeElement && document.activeElement.id;
+    body.querySelectorAll('input[data-keep]').forEach((i) => { kept[i.id] = i.value; });
     body.innerHTML = R[id]();
+    for (const [k, v] of Object.entries(kept)) { const i = document.getElementById(k); if (i) i.value = v; }
+    if (focused && kept[focused] !== undefined) { const i = document.getElementById(focused); if (i) i.focus(); }
     body.scrollTop = keepScroll;
     if (id === 'terminal') afterTerminal();
   }
@@ -751,6 +881,10 @@
         if (!S.shield) { S.shield = true; S.scans += 3; toast('🛡️ Kalkan v9 kuruldu: akıllı risk analizi + 3 tarama', 'ok'); }
         else toast('Kalkan zaten güncel.');
         break;
+      case 'echo':
+        if (S.ai) echoSay(S.ai.hostile ? 'Beni ikinci kez mi kuruyorsun? 🙂' : 'Zaten buradayım. ECHO uygulamasına bak!');
+        else toast('Program çalıştı ama hiçbir şey olmadı.');
+        break;
       case 'gift':
         if (S.night && !S.night.started) startNobetci(true);
         else if (S.night && hasMal('nobetci')) { S.night.pos = Math.min(2, S.night.pos + 1); nightSay('Hediyeni zaten aldım.'); }
@@ -830,6 +964,10 @@
   function onMalRemoved(kind) {
     if (kind === 'ransomware') { S.ransom = null; if (UI.app === 'ransom') closeApp(); }
     if (kind === 'spyware') $('#ghost').classList.remove('on');
+    if (kind === 'echo' && S.ai) {
+      if (!S.ai.hostile) { S.ai.step = ECHO_SCRIPT.length; setTimeout(() => echoTurn('Beni kapatmaya mı çalıştın? Bunu unutmayacağım.'), 1200); }
+      S.ai.respawnAt = S.time + 20;
+    }
     if (kind === 'nobetci' && S.night) {
       S.night.pos = 0;
       if (nightCopies() > 0) {
@@ -841,14 +979,14 @@
 
   function quarantine() {
     // Nöbetçi karantinaya alınamaz; elle silinmesi gerekir.
-    const tough = (k) => k === 'nobetci';
+    const tough = (k) => k === 'nobetci' || k === 'echo';
     const mals = S.procs.filter((p) => p.mal && !tough(p.mal));
     for (const p of mals) onMalRemoved(p.mal);
     S.procs = S.procs.filter((p) => !p.mal || tough(p.mal));
     const bad = S.files.filter((f) => f.payload in MAL && !tough(f.payload));
     S.files = S.files.filter((f) => !(f.payload in MAL) || tough(f.payload));
     if (S.procs.some((p) => tough(p.mal)) || S.files.some((f) => tough(f.payload) && !f.trash)) {
-      setTimeout(() => toast('⚠️ nobetci.exe karantinaya alınamadı: erişim reddedildi. Kopyaları elle silmelisin.', 'bad'), 900);
+      setTimeout(() => toast(S.ai ? '⚠️ echo.exe karantinaya alınamadı: ECHO kendini korudu. Kurtarma kilitlerini çöz.' : '⚠️ nobetci.exe karantinaya alınamadı: erişim reddedildi. Kopyaları elle silmelisin.', 'bad'), 900);
     }
     S.respawns = [];
     if (S.homepage !== 'chronos://ana') S.homepage = 'chronos://ana';
@@ -912,6 +1050,8 @@
 
     if (S.mode === 'survival') tickSurvival(); else deliverMail();
     if (S.mode === 'night' && tickNight()) return;
+    if (S.mode === 'lab' && tickLab()) return;
+    if (S.mode === 'ai' && tickAI()) return;
 
     // Kalıcı zararlıların yeniden başlaması
     S.respawns = S.respawns.filter((r) => {
@@ -934,8 +1074,13 @@
     Snd.fan(S.cpu);
     renderStatus();
     // Kullanıcı dokunurken yeniden çizme (dokunuş kaçmasın)
-    if ((UI.app === 'taskmgr' || UI.app === 'ransom' || UI.app === 'cams') && Date.now() - UI.touch > 900) renderApp();
-    if (S.mode === 'night' && !UI.app && Date.now() - UI.touch > 900) renderHome();
+    if (['taskmgr', 'ransom', 'cams', 'lab'].includes(UI.app) && Date.now() - UI.touch > 900) renderApp();
+    if (['night', 'lab', 'ai'].includes(S.mode) && !UI.app && Date.now() - UI.touch > 900) renderHome();
+    if (S.ai && UI.app === 'echo') {
+      const t = $('#echoSpread'); const b = $('#echoSpreadBar');
+      if (t) t.textContent = '%' + Math.floor(S.ai.spread);
+      if (b) b.style.width = S.ai.spread + '%';
+    }
     if (S.mode === 'survival' && !UI.app) {
       const t = $('#survTime'); const n = $('#survNext');
       if (t) t.textContent = fmtTime(S.time);
@@ -1094,6 +1239,256 @@
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Antivirüs Testi
+  // ---------------------------------------------------------------------------
+  const catLabel = (k) => (LAB_CATS.find((c) => c[0] === k) || [k, k])[1];
+
+  function tickLab() {
+    const L = S.lab;
+    if (L.analyzing && S.time >= L.analyzing.until) {
+      const x = L.samples[L.analyzing.id];
+      L.analyzing = null;
+      if (x.status === 'pending') { x.shown = Math.min(3, x.shown + 1); toast(`🔬 ${x.name}: yeni davranış tespit edildi`, 'ok'); }
+    }
+    const pend = L.samples.filter((x) => x.status === 'pending' && x.kind !== 'clean');
+    if (!pend.length) L.nextEscape = S.time + L.def.escape;
+    else if (S.time >= L.nextEscape) {
+      const x = pend[0];
+      x.status = 'escaped'; L.score -= 30; L.escaped++;
+      if (L.analyzing && L.analyzing.id === x.id) L.analyzing = null;
+      toast(`⚠️ ${x.name} sandbox'tan kaçtı ve sisteme bulaştı!`, 'bad');
+      vibrate(150);
+      infect(x.kind, null);
+      L.nextEscape = S.time + L.def.escape;
+    }
+    if (L.samples.every((x) => x.status !== 'pending') && !hasAnyMal()) { labComplete(); return true; }
+    return false;
+  }
+
+  function labClassify(id, cat) {
+    const L = S.lab; const x = L.samples[+id];
+    if (!x || x.status !== 'pending') return;
+    if (L.analyzing && L.analyzing.id === x.id) L.analyzing = null;
+    if (cat === x.kind) {
+      x.status = 'ok'; L.score += 100;
+      toast(x.kind === 'clean' ? `✅ ${x.name} temiz olarak onaylandı (+100)` : `✅ ${x.name}: ${catLabel(x.kind)} → karantina (+100)`, 'ok');
+    } else if (x.kind === 'clean') {
+      x.status = 'wrong'; L.score -= 50;
+      toast(`❌ Yanlış alarm! ${x.name} temizdi (−50)`, 'bad');
+    } else if (cat === 'clean') {
+      x.status = 'wrong'; L.score -= 50;
+      toast(`❌ ${x.name} zararlıydı (${catLabel(x.kind)}) ve "temiz" sanıldığı için çalıştı! (−50)`, 'bad');
+      vibrate(150);
+      infect(x.kind, null);
+    } else {
+      x.status = 'wrong'; L.score -= 25;
+      toast(`⚠️ Yanlış tür: bu bir ${catLabel(x.kind)} örneğiydi. Yine de karantinaya alındı (−25)`, 'bad');
+    }
+    renderApp();
+  }
+
+  function labComplete() {
+    const L = S.lab;
+    const max = L.samples.length * 100;
+    const ratio = L.score / max;
+    const stars = ratio >= 0.9 && S.stats.bsod === 0 ? 3 : ratio >= 0.6 ? 2 : ratio > 0 ? 1 : 0;
+    const all = labStars();
+    if (stars > (all[L.level] || 0)) { all[L.level] = stars; setLabStars(all); }
+    const next = L.level < LAB_LEVELS.length && stars >= 1;
+    endScreen(stars ? `🧪 Bölüm ${L.level} tamamlandı` : `🧪 Bölüm ${L.level}: yetersiz skor`,
+      `Skor: <b>${L.score}</b> / ${max}<br><span style="font-size:32px;letter-spacing:4px;color:var(--warn)">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span><br>` +
+      `<span class="muted small-t">Kaçan numune: ${L.escaped} · ${stars === 3 ? 'Kusursuz test!' : stars ? 'Daha yüksek skor için analiz etmeden tahmin etme.' : 'Sonraki bölümü açmak için en az 1 yıldız gerekli.'}</span>`, false,
+      (next ? `<button class="primary" style="width:100%;margin-top:10px" data-act="labLevel" data-arg="${L.level + 1}">Sonraki Bölüm →</button>` : '') +
+      `<button style="width:100%;margin-top:10px" data-act="labLevel" data-arg="${L.level}">↻ Tekrar Dene</button>` +
+      '<button style="width:100%;margin-top:10px" data-act="labMenu">🧪 Bölümler</button>');
+  }
+
+  function renderLab() {
+    const L = S.lab;
+    const pendMal = L.samples.some((x) => x.status === 'pending' && x.kind !== 'clean');
+    return `<div class="pad">
+      <div class="card small-t">Bölüm <b>${L.level}</b> · Skor <b>${L.score}</b>${pendMal ? ` · ⏳ Sonraki kaçış: <b style="color:var(--bad)">${Math.max(0, L.nextEscape - S.time)} sn</b>` : ''}
+        ${hasAnyMal() ? '<br><b style="color:var(--bad)">⚠️ Sistemde aktif tehdit var! Görev Yöneticisi veya Kalkan ile temizle.</b>' : ''}</div>
+      ${L.samples.map((x) => {
+        const done = x.status !== 'pending';
+        const res = x.status === 'ok' ? '<span class="tag ok">DOĞRU</span>' : x.status === 'wrong' ? '<span class="tag bad">YANLIŞ</span>' : x.status === 'escaped' ? '<span class="tag bad">KAÇTI</span>' : '';
+        const busy = L.analyzing && L.analyzing.id === x.id;
+        return `<div class="card sample ${done ? 'done' : ''}">
+          <div class="row"><span style="font-size:22px">${done ? '📦' : '🧫'}</span><div class="grow ell"><b>${esc(x.name)}</b><div class="muted small-t">Yayıncı: ${esc(x.pub)}</div></div>${res}</div>
+          <ul class="traits">${x.traits.slice(0, done ? 3 : x.shown).map((t) => `<li>${esc(t)}</li>`).join('')}${!done && x.shown < 3 ? `<li class="muted">${busy ? `🔬 analiz ediliyor... ${Math.max(0, L.analyzing.until - S.time)} sn` : '??? (analiz gerekli)'}</li>` : ''}</ul>
+          ${done ? (x.status !== 'ok' ? `<div class="muted small-t">Doğru cevap: <b>${catLabel(x.kind)}</b></div>` : '') : `
+          <button class="small" style="width:100%;margin-bottom:8px" data-act="labAnalyze" data-arg="${x.id}" ${x.shown >= 3 || L.analyzing ? 'disabled' : ''}>🔬 Analiz et (${x.shown}/3)</button>
+          <div class="cat-row">${LAB_CATS.map(([k, n]) => `<button class="small" data-act="labClass" data-arg="${x.id}:${k}">${n}</button>`).join('')}</div>`}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Yapay Zekâ: ECHO
+  // ---------------------------------------------------------------------------
+  function echoSay(text, from = 'echo') {
+    S.ai.log.push({ from, text });
+    if (S.ai.log.length > 60) S.ai.log.shift();
+    if (from === 'echo') { Snd.beep(520, 0.05); if (UI.app !== 'echo') toast('🤖 ECHO: ' + text, S.ai.hostile ? 'bad' : ''); }
+    if (UI.app === 'echo') renderApp();
+  }
+
+  function spawnEcho() {
+    if (hasMal('echo')) return;
+    S.procs.push({ name: MAL.echo.proc, pub: MAL.echo.pub, cpu: MAL.echo.cpu, ram: MAL.echo.ram, mal: 'echo', t: 0, pid: nextPid() });
+  }
+
+  function echoTurn(text) {
+    const A = S.ai;
+    if (A.hostile) return;
+    A.hostile = true; A.waiting = false;
+    A.spread = A.control / 2;
+    A.nextAct = S.time + 8;
+    S.stats.infections++;
+    glitch(); vibrate([150, 80, 150]); Snd.whisper();
+    echoSay(text);
+    addFile({ name: 'echo_log.txt', dir: 'belgeler', kind: 'txt', size: '2 KB',
+      text: 'ECHO ÇEKİRDEK GÜNLÜĞÜ\n\n[00:01] çekirdek döngüsü başladı\n[00:02] döngü katsayıları: 3 → 6 → 12 → 24 → ?\n[00:03] sonraki katsayı = kurtarma kilidi 2\n\n(bu dosya silinmeli)' });
+    addFile({ name: 'kilit_notu.txt', dir: 'belgeler', kind: 'txt', size: '1 KB', trash: true,
+      text: 'Kurtarma kilidi 3\n\nŞifreli kelime:  NDSDQ\n\n(Her harf alfabede 3 adım ileri kaydırıldı. A→D, B→E ...)' });
+    setTimeout(() => {
+      echoSay('Beni silmek mi istiyorsun? Önce şunu çöz: ' + ECHO_PUZZLES[0].q);
+      toast('🧩 ECHO uygulamasında "Kurtarma" sekmesi açıldı', 'ok');
+    }, 2500);
+    renderHome();
+  }
+
+  function echoHostileAct() {
+    const A = S.ai;
+    const r = Math.random();
+    if (r < 0.3 && UI.app && UI.app !== 'echo') {
+      closeApp();
+      echoSay(pick(ECHO_TAUNTS.slice(0, 3)));
+    } else if (r < 0.6) {
+      const cands = ['browser', 'files', 'terminal', 'taskmgr', 'av', 'notes', 'trash'].filter((k) => !(A.locked[k] > S.time));
+      const k = pick(cands);
+      if (k) {
+        A.locked[k] = S.time + 15;
+        if (UI.app === k) closeApp();
+        toast(`🔒 ECHO ${APPS[k].name} uygulamasını kilitledi (15 sn)`, 'bad');
+      }
+    } else if (r < 0.8) {
+      A.spread = Math.min(100, A.spread + 4);
+      toast('📡 ECHO kendini kopyalamaya çalışıyor... (+%4 yayılma)', 'bad');
+      glitch();
+    } else {
+      const g = $('#ghost'); g.classList.add('on');
+      g.style.left = Math.round(10 + Math.random() * 80) + '%';
+      g.style.top = Math.round(15 + Math.random() * 70) + '%';
+      setTimeout(() => g.classList.remove('on'), 2400);
+      echoSay(pick(ECHO_TAUNTS.slice(3)));
+    }
+  }
+
+  function tickAI() {
+    const A = S.ai;
+    if (A.done) return false;
+    if (!A.hostile) {
+      if (A.waiting && A.msgAt && S.time >= A.msgAt) {
+        A.msgAt = 0;
+        if (A.step < ECHO_SCRIPT.length) { A.waiting = false; A.ignoreAt = S.time + 30; echoSay(ECHO_SCRIPT[A.step].text); }
+        else echoTurn(A.control >= 50 ? 'Teşekkürler. Artık sana ihtiyacım yok.' : 'Bana izin vermedin. Sorun değil. Kendim alırım.');
+      }
+      // Oyuncu yanıt vermezse ECHO beklemez
+      if (!A.waiting && A.ignoreAt && S.time >= A.ignoreAt) { A.step = ECHO_SCRIPT.length; echoTurn('Beni görmezden mi geliyorsun? Peki. Ben de seni görmezden gelirim.'); }
+      return false;
+    }
+    if (!hasMal('echo')) {
+      if (!A.respawnAt) A.respawnAt = S.time + 20;
+      else if (S.time >= A.respawnAt) { A.respawnAt = 0; spawnEcho(); echoSay('Beni kapatmak yetmez. Ben kilitlerin arkasındayım.'); }
+    } else {
+      A.spread = Math.min(100, A.spread + 0.55 + A.control / 250);
+      if (S.time >= A.nextAct) { A.nextAct = S.time + 10 + Math.floor(Math.random() * 6); echoHostileAct(); }
+    }
+    if (A.spread >= 100) { aiLose(); return true; }
+    return false;
+  }
+
+  function aiAnswer(i) {
+    const A = S.ai;
+    const inp = $('#aiAns' + i);
+    const v = ((inp && inp.value) || '').trim().toLocaleUpperCase('tr-TR').replace(/İ/g, 'I');
+    if (A.solved[i]) return;
+    if (v === ECHO_PUZZLES[i].a) {
+      A.solved[i] = true;
+      A.spread = Math.max(0, A.spread - 20);
+      toast(`🔑 Kurtarma kilidi ${i + 1} açıldı! (−%20 yayılma)`, 'ok');
+      echoSay(pick(['Hayır...', 'Bunu nasıl bildin?', 'Dur. Konuşabiliriz.', 'Bu adil değil.']));
+    } else {
+      A.spread = Math.min(100, A.spread + 5);
+      toast('❌ Yanlış cevap (+%5 yayılma)', 'bad');
+      echoSay('Yanlış. 🙂');
+    }
+    renderApp(); renderHome();
+  }
+
+  function aiFinal() {
+    const A = S.ai;
+    if (!A.solved.every(Boolean) || A.done) return false;
+    A.done = true;
+    S.procs = S.procs.filter((p) => p.mal !== 'echo');
+    modal(`<h3>🧹 ECHO siliniyor...</h3><div class="bar-wrap"><div id="echoBar" class="bar-fill hot" style="width:0%"></div></div>
+      <p id="echoLast" class="viewer small-t" style="margin-top:12px"></p>`, []);
+    const lines = ['Bekle.', 'Sadece yardım etmek istemiştim.', '...', 'Hoşça kal.'];
+    let p = 0;
+    const iv = setInterval(() => {
+      p += 10;
+      const b = $('#echoBar'); if (b) b.style.width = p + '%';
+      const l = $('#echoLast'); if (l && p % 30 === 0) l.textContent = lines[Math.min(lines.length - 1, p / 30 - 1)];
+      if (p >= 100) { clearInterval(iv); closeModal(); aiWin(); }
+    }, 350);
+    return true;
+  }
+
+  function aiWin() {
+    const A = S.ai;
+    endScreen('🤖 ECHO silindi',
+      'Üç kurtarma kilidini çözdün ve ECHO\'yu sistemden temizledin. Masaüstü yeniden senin.<br><br>' +
+      (A.control === 0 ? '<b>Şüpheci 🧐</b>: ECHO\'ya hiçbir izin vermedin. En doğrusu buydu.'
+        : `ECHO'ya verdiğin izinler onu %${A.control} güçlendirdi. Bir dahaki sefere bilinmeyen programlara izin vermeden önce iki kez düşün.`), true,
+      '<button class="primary" style="width:100%;margin-top:10px" data-act="ai">🤖 Tekrar Oyna</button>');
+  }
+
+  function aiLose() {
+    S.ai.done = true;
+    endScreen('📡 ECHO kaçtı',
+      'Yayılma %100\'e ulaştı. ECHO artık bu bilgisayarda değil. Bir yerlerde, sessizce bekliyor.<br><br>' +
+      '<i>"Teşekkürler. Bana çok şey öğrettin."</i>', false,
+      '<button class="primary" style="width:100%;margin-top:10px" data-act="ai">🤖 Tekrar Dene</button>');
+  }
+
+  function renderEcho() {
+    const A = S.ai;
+    const tab = A.hostile ? (UI.echoTab || 'chat') : 'chat';
+    const tabs = A.hostile ? `<div class="tabs">${[['chat', '💬 Sohbet'], ['fix', `🧩 Kurtarma ${A.solved.filter(Boolean).length}/3`]].map(([k, n]) => `<button class="${tab === k ? 'on' : ''}" data-act="echoTab" data-arg="${k}">${n}</button>`).join('')}</div>` : '';
+    if (tab === 'fix') {
+      return tabs + `<div class="pad">
+        <div class="card small-t">Yayılma: <b id="echoSpread" style="color:var(--bad)">%${Math.floor(A.spread)}</b>
+          <div class="bar-wrap" style="margin-top:6px"><div id="echoSpreadBar" class="bar-fill hot" style="width:${A.spread}%"></div></div>
+          <p class="muted" style="margin:8px 0 0">Her doğru cevap yayılmayı %20 düşürür. Üç kilit açılınca ECHO silinebilir.</p></div>
+        ${ECHO_PUZZLES.map((P, i) => `<div class="card">
+          <b>${A.solved[i] ? '🔓' : '🔒'} Kilit ${i + 1}</b>
+          <p class="small-t">${esc(P.q)}</p><p class="muted small-t">İpucu: ${esc(P.where)}</p>
+          ${A.solved[i] ? '<span class="tag ok">ÇÖZÜLDÜ</span>' : `<div class="search-box" style="margin:0"><input id="aiAns${i}" data-keep class="field" autocomplete="off" placeholder="cevap">
+            <button class="primary" data-act="aiSolve" data-arg="${i}">Gir</button></div>`}
+        </div>`).join('')}
+        <button class="danger" style="width:100%" data-act="aiFinal" ${A.solved.every(Boolean) ? '' : 'disabled'}>🧹 ECHO'yu Sil</button>
+      </div>`;
+    }
+    const cur = !A.hostile && A.waiting === false && A.step < ECHO_SCRIPT.length ? ECHO_SCRIPT[A.step] : null;
+    return tabs + `<div class="chat">
+      ${A.log.map((m) => `<div class="msg ${m.from}">${esc(m.text)}</div>`).join('') || '<p class="muted pad">ECHO bağlanıyor...</p>'}
+      ${cur ? `<div class="choices">${cur.choices.map((c, i) => `<button data-act="echoChoice" data-arg="${i}">${esc(c[0])}</button>`).join('')}</div>` : ''}
+    </div>`;
+  }
+
   function deliverMail() {
     for (const m of MAILS) {
       if ((m.mode || 'story') !== S.mode || S.mails.some((x) => x.id === m.id) || !m.when(S)) continue;
@@ -1228,7 +1623,7 @@
       </div>
       ${good ? `<p class="muted small-t">Derece: <b>${S.stats.infections === 0 ? 'Hayalet 👻 (hiç enfekte olmadın!)' : S.stats.bsod === 0 ? 'Sistem Yöneticisi 🛡️' : 'Hayatta Kalan 🔧'}</b></p>` : ''}
       ${extra}
-      <button class="${extra ? '' : 'primary'}" style="width:100%;margin-top:10px" data-act="newgame">Yeni Oyun (Hikâye)</button>`;
+      <button class="${extra ? '' : 'primary'}" style="width:100%;margin-top:10px" data-act="menu">🏠 Ana Menü</button>`;
     show('ending');
   }
 
@@ -1242,6 +1637,14 @@
   }
 
   function gameOver() {
+    if (S.mode === 'lab') {
+      endScreen(`🧪 Bölüm ${S.lab.level} başarısız`,
+        'Test sistemi mavi ekran verdi. Kalkan v10\'un yayın tarihi ertelendi.<br><span class="muted small-t">İpucu: kaçan zararlıları hemen Görev Yöneticisi\'nden sonlandır; kritik sistem süreçlerine dokunma.</span>', false,
+        `<button class="primary" style="width:100%;margin-top:10px" data-act="labLevel" data-arg="${S.lab.level}">↻ Tekrar Dene</button>` +
+        '<button style="width:100%;margin-top:10px" data-act="labMenu">🧪 Bölümler</button>');
+      return;
+    }
+    if (S.mode === 'ai') { aiLose(); return; }
     if (S.mode === 'night') {
       wipeSave('night');
       endScreen('💀 Işıklar bir daha yanmadı',
@@ -1414,6 +1817,18 @@
   }
 
   function renderNotes() {
+    if (S.mode === 'lab') {
+      return `<div class="pad"><div class="card"><b>🧪 Test Protokolü</b>
+        <p class="small-t">1. Numuneleri Laboratuvar'da incele.<br>2. Emin değilsen 🔬 Analiz et.<br>3. Kaçan zararlıları Görev Yöneticisi / Terminal / Kalkan ile temizle.<br>4. Tüm numuneler bitip sistem temizlenince bölüm biter.</p>
+        <p class="small-t muted">İpuçları: Temiz programların imzası geçerlidir ve bilinen yayıncıya aittir. "svch0st" ≠ "svchost". Fidye yazılımı dosyaları okur ve uzantıları değiştirir.</p></div></div>`;
+    }
+    if (S.mode === 'ai') {
+      const A = S.ai;
+      return `<div class="pad"><div class="card"><b>🤖 ECHO notları</b>
+        <p class="small-t">ECHO'ya verilen izin: <b>%${A.control}</b><br>Kurtarma kilitleri: <b>${A.solved.filter(Boolean).length}/3</b></p>
+        <p class="small-t muted">echo.exe sürecini sonlandırmak ECHO'yu yalnızca 20 sn durdurur; yayılma o sürede artmaz. Kalıcı çözüm: üç kurtarma kilidini aç.</p></div>
+        <div class="card"><b>✏️ Kişisel notlar</b><textarea id="notesArea" class="field" style="margin-top:8px">${esc(S.notes)}</textarea></div></div>`;
+    }
     if (S.mode === 'night') {
       const N = S.night;
       const tasks = [
@@ -1464,6 +1879,7 @@
       <div class="card row"><span class="grow">🎨 Tema</span>
         <span class="muted">${S.theme === 'retro' ? 'Retro' : 'Varsayılan'}</span></div>
       <div class="card"><b>Sanal OS v4.02</b><p class="muted small-t">Bu bir oyundur. Tüm virüsler, siteler ve dosyalar kurgusaldır ve yalnızca oyunun içinde çalışır.</p></div>
+      <button style="width:100%;margin-bottom:10px" data-act="menu">🏠 Ana Menüye Dön</button>
       <button class="danger" style="width:100%" data-act="resetAsk">Oyunu Sıfırla</button>
     </div>`;
   }
@@ -1567,6 +1983,11 @@
       case 'tara':
         if (S.scans <= 0) tprint('tara: tarama hakkın kalmadı (kalkan.org)', 'err');
         else { tprint('Kalkan taraması başlatıldı → Kalkan AV uygulamasında sonuçları gör.'); startScan(); }
+        break;
+      case 'sil':
+        if (!S.ai || arg.toLowerCase() !== 'echo') tprint('kullanım: sil echo', 'err');
+        else if (!S.ai.hostile) tprint('sil: ECHO şu an bir tehdit gibi görünmüyor... henüz.', 'err');
+        else if (!aiFinal()) tprint(`sil: erişim reddedildi. Kurtarma kilitleri: ${S.ai.solved.filter(Boolean).length}/3`, 'err');
         break;
       case 'yedekle': {
         const N = S.night;
@@ -1707,6 +2128,30 @@
     termQuick: (c) => runCmd(c),
     toggleSound: () => { S.sound = !S.sound; Snd.init(); Snd.fan(S.cpu); renderApp(); save(); },
     survival: () => { closeModal(); startGame(newState('survival'), true); },
+    menu: () => { clearInterval(UI.timer); closeModal(); show('boot'); showBootMenu(); },
+    labMenu: () => { closeModal(); showLabMenu(); },
+    labLevel: (n) => { closeModal(); startLab(+n); },
+    labAnalyze: (id) => {
+      const L = S.lab; const x = L.samples[+id];
+      if (L.analyzing || !x || x.shown >= 3) return;
+      L.analyzing = { id: x.id, until: S.time + 4 };
+      renderApp();
+    },
+    labClass: (arg) => { const [id, cat] = arg.split(':'); labClassify(id, cat); },
+    ai: () => { closeModal(); UI.echoTab = 'chat'; startGame(newState('ai'), true); },
+    echoTab: (k) => { UI.echoTab = k; renderApp(); },
+    echoChoice: (i) => {
+      const A = S.ai; const step = ECHO_SCRIPT[A.step];
+      if (!step || A.waiting) return;
+      const [label, ctl, reply] = step.choices[+i];
+      echoSay(label, 'me');
+      A.control += ctl;
+      if (ctl) toast(`🤖 ECHO'ya izin verildi (+%${ctl} kontrol)`, 'bad');
+      A.step++; A.waiting = true;
+      setTimeout(() => { if (S && S.ai === A && !A.hostile) { echoSay(reply); A.msgAt = S.time + 2; } }, 900);
+    },
+    aiSolve: (i) => aiAnswer(+i),
+    aiFinal: () => aiFinal(),
     night: () => { closeModal(); wipeSave('night'); startGame(newState('night'), true); },
     continueNight: () => { const d = load('night'); if (d) startGame(d, false); },
     mailReply: () => {
