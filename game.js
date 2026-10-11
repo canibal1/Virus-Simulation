@@ -24,7 +24,18 @@
     trojan:     { proc: 'svch0st.exe',     pub: 'Sanal 0S',   cpu: 12, ram: 320, label: 'Trojan / System Wiper' },
     nobetci:    { proc: 'nobetci.exe',     pub: 'Meridyen IT', cpu: 14, ram: 210, label: 'Bilinmeyen program (Nöbetçi)' },
     echo:       { proc: 'echo.exe',        pub: 'ECHO Labs',   cpu: 9,  ram: 420, label: 'ECHO (yapay zekâ asistanı)' },
+    maymun:     { proc: 'maymun.exe',      pub: 'FunWare 2003', cpu: 16, ram: 90, label: 'Komik virüs (Dans eden maymun)' },
+    kurtcuk:    { proc: 'kurtcuk.exe',     pub: 'Bilinmiyor',  cpu: 10, ram: 40,  label: 'Solucan (Kurtçuk)' },
   };
+
+  // Ek bölümler kendilerini buraya kaydeder: { title, setup, intro, tick, widget, notes, lose, ... }
+  const MODES = {};
+  const modeHook = (name, ...args) => (S && MODES[S.mode] && MODES[S.mode][name] ? MODES[S.mode][name](...args) : undefined);
+  // Zararlı türüne özel her-saniye davranışları ve temizlenince yapılacaklar
+  const MAL_TICK = {};
+  const MAL_REMOVED = {};
+  // Ek bölümlerin düğme eylemleri; ACT tanımlandıktan sonra ona eklenir
+  const EXTRA_ACTS = {};
 
   // Antivirüs Testi (Kalkan Laboratuvarı)
   const LAB_KEY = 'sanal-os-lab';
@@ -257,6 +268,12 @@
     addFile({ name: 'silinen_mesaj.txt', dir: 'belgeler', kind: 'txt', size: '1 KB', trash: true, protect: true, flag: 'p3',
       text: 'Kimden: Deniz K.\nKonu: (silindi)\n\nBunu sana bırakıyorum, çöpe atıp izini kaybettirdim.\n\n>> PARÇA 3:  77\n\nAnahtarı birleştir ve ARES.kilit dosyasını aç.\nKimseye fidye ödeme, kimseye güvenme.' });
     if (mode === 'survival') s.files = s.files.filter((f) => f.kind !== 'ares' && !f.flag);
+    if (MODES[mode]) {
+      s.files = s.files.filter((f) => f.kind !== 'ares' && !f.flag && f.name !== 'hatirlatma.txt' && f.name !== 'gorev_notu.txt');
+      s.procs = BASE_PROCS.map((p) => ({ ...p, pid: nextPid() }));
+      MODES[mode].setup(s);
+      return s;
+    }
     if (mode === 'lab' || mode === 'ai') {
       s.files = s.files.filter((f) => f.kind !== 'ares' && !f.flag && f.name !== 'hatirlatma.txt' && f.name !== 'gorev_notu.txt');
     }
@@ -285,7 +302,7 @@
   function fileById(id) { return S.files.find((f) => f.id === +id); }
 
   const saveKey = (mode) => SAVE_KEY + (mode === 'night' ? '-gece' : '');
-  function save() { if (!S || S.mode === 'survival' || S.mode === 'lab' || S.mode === 'ai') return; try { localStorage.setItem(saveKey(S.mode), JSON.stringify(S)); } catch (e) { /* depolama yoksa sessiz geç */ } }
+  function save() { if (!S || S.mode === 'survival' || S.mode === 'lab' || S.mode === 'ai' || MODES[S.mode]) return; try { localStorage.setItem(saveKey(S.mode), JSON.stringify(S)); } catch (e) { /* depolama yoksa sessiz geç */ } }
   function load(mode = 'story') {
     try {
       const raw = localStorage.getItem(saveKey(mode));
@@ -347,6 +364,12 @@
       const g = this.ctx.createGain(); g.gain.value = 0.25;
       src.connect(f).connect(g).connect(this.ctx.destination); src.start(t);
     },
+    dialup() {
+      if (!this.ctx || !S || !S.sound) return;
+      [697, 1209, 770, 1336, 852, 1477, 941].forEach((f, i) => setTimeout(() => this.beep(f, 0.09), i * 120));
+      setTimeout(() => { this.beep(1800, 0.6); this.whisper(); }, 1000);
+      setTimeout(() => { this.beep(2400, 0.4); this.whisper(); }, 1700);
+    },
     beep(freq = 440, dur = 0.12) {
       if (!this.ctx || !S || !S.sound) return;
       const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
@@ -404,6 +427,7 @@
       '<button data-act="night">🌙 Gece Vardiyası</button>' +
       `<button data-act="labMenu">🧪 Antivirüs Testi${Object.keys(labStars()).length ? ` · ${Object.values(labStars()).reduce((a, b) => a + b, 0)}★` : ''}</button>` +
       '<button data-act="ai">🤖 Yapay Zekâ: ECHO</button>' +
+      Object.entries(MODES).map(([k, m]) => `<button data-act="startMode" data-arg="${k}">${m.title}</button>`).join('') +
       `<button data-act="survival">⏱️ Hayatta Kalma Modu${getBest() ? ` · Rekor ${fmtTime(getBest())}` : ''}</button>` +
       '<p class="muted small-t" style="text-align:center">Tüm tehditler kurgusaldır ve yalnızca oyunun içinde çalışır.</p>';
     menu.classList.remove('hidden');
@@ -456,13 +480,17 @@
     $('#popups').innerHTML = ''; $('#toasts').innerHTML = '';
     $('#ghost').classList.remove('on');
     $('#wiper').classList.add('hidden'); $('#blackout').classList.add('hidden');
+    document.querySelectorAll('.mode-fx').forEach((e) => e.remove());
+    $('#os').dataset.mode = S.mode;
     closeModal();
     UI.br = { url: S.homepage, hist: [], src: false, query: '' };
     closeApp();
     renderStatus();
     clearInterval(UI.timer);
     UI.timer = setInterval(tick, 1000);
-    if (fresh && S.mode === 'lab') {
+    if (fresh && MODES[S.mode]) {
+      modal(MODES[S.mode].intro(), [['Başla', 'primary', 'modalClose']]);
+    } else if (fresh && S.mode === 'lab') {
       modal(`<h3>🧪 Bölüm ${S.lab.level}</h3>
         <p><b>${S.lab.samples.length} numune</b> Laboratuvar uygulamasında seni bekliyor. Her birini <b>Temiz / Adware / Fidye / Casus / Truva</b> olarak sınıflandır.</p>
         <p>🔬 <b>Analiz</b> yeni bir davranış ortaya çıkarır (4 sn). Sınıflandırılmamış zararlılar <b>${S.lab.def.escape} sn</b>'de bir sandbox'tan kaçıp sisteme bulaşır; onları Görev Yöneticisi, Terminal veya Kalkan ile temizle.</p>
@@ -530,20 +558,20 @@
 
   function fileIcon(f) {
     if (f.locked) return '🔒';
-    return { ares: '🔐', txt: '📄', img: '🖼️', doc: '📑', exe: '⚙️', zip: '🗜️' }[f.kind] || '📄';
+    return { ares: '🔐', txt: '📄', img: '🖼️', doc: '📑', exe: '⚙️', zip: '🗜️', mp3: '🎵', save: '💾' }[f.kind] || '📄';
   }
   function fileName(f) { return f.locked ? f.name + '.locked' : f.name; }
 
   function renderHome() {
     const found = ['p1', 'p2', 'p3'].filter((k) => S.flags[k]).length;
     const trashN = S.files.filter((f) => f.trash).length;
-    const desk = S.files.filter((f) => f.dir === 'masaustu' && !f.trash);
+    const desk = S.files.filter((f) => f.dir === 'masaustu' && !f.trash && !f.eaten && !f.hidden);
     const unread = S.mails.filter((m) => !m.read).length;
     const badges = { trash: trashN, mail: unread };
     const N = S.night;
     const camState = !N ? '' : N.defeated ? 'Sakin' : hasMal('nobetci') ? ROOMS[N.pos] : N.started ? 'Sinyal yok' : 'Normal';
     const L = S.lab; const A = S.ai;
-    const widget = S.mode === 'lab'
+    const widget = MODES[S.mode] ? MODES[S.mode].widget() : S.mode === 'lab'
       ? `🧪 Bölüm <b>${L.level}</b> &nbsp;·&nbsp; Skor <b>${L.score}</b> &nbsp;·&nbsp; 🛡️ ${S.scans} tarama<br>
         <span class="muted small-t">Bekleyen numune: <b>${L.samples.filter((x) => x.status === 'pending').length}</b>${hasAnyMal() ? ' · <b style="color:var(--bad)">Sistemde aktif tehdit!</b>' : ''}</span>`
       : S.mode === 'ai'
@@ -593,6 +621,9 @@
     const t = $('#mTemp'); t.textContent = `${Math.round(S.temp)}°C`;
     t.className = 'meter' + (S.temp > 78 ? ' hot' : S.temp > 62 ? ' warm' : '');
     $('#mLives').textContent = '♥'.repeat(S.lives) + '♡'.repeat(Math.max(0, 3 - S.lives));
+    let ex = $('#mExtra');
+    if (!ex) { ex = document.createElement('span'); ex.id = 'mExtra'; ex.className = 'meter'; $('#mCpu').before(ex); }
+    ex.innerHTML = modeHook('status') || '';
     $('#cam').classList.toggle('on', hasMal('spyware') || hasMal('nobetci'));
     $('#os').classList.toggle('lag', S.cpu > 85);
   }
@@ -625,6 +656,7 @@
     const body = $('#winBody');
     const R = { lab: renderLab, echo: renderEcho, cams: renderCams, mail: renderMail, browser: renderBrowser, files: renderFiles, terminal: renderTerminal, taskmgr: renderTaskmgr,
       av: renderAV, notes: renderNotes, trash: renderTrash, settings: renderSettings, viewer: renderViewer, ransom: renderRansom };
+    for (const m of Object.values(MODES)) Object.assign(R, m.apps || {});
     const keepScroll = ['taskmgr', 'av', 'lab', 'echo'].includes(id) ? body.scrollTop : 0;
     // data-keep işaretli alanlardaki yazılanlar yeniden çizimde kaybolmasın
     const kept = {}; const focused = document.activeElement && document.activeElement.id;
@@ -769,6 +801,8 @@
   }
 
   function renderBrowser() {
+    const gate = modeHook('browserGate');
+    if (gate) return gate;
     const b = UI.br;
     const site = SITES[b.url] || SITES['chronos://ana'];
     if (site.onVisit) site.onVisit();
@@ -821,17 +855,20 @@
   }
 
   function doDownload(key) {
+    if (modeHook('download', key)) return;
+    toast(`⬇️ ${DL[key].name} indiriliyor...`);
+    const st = S;
+    setTimeout(() => { if (S === st) finishDownload(key); }, 1400);
+  }
+
+  function finishDownload(key) {
     const d = DL[key];
-    const ext = d.name.split('.').pop();
-    const kind = ext === 'txt' ? 'txt' : (ext === 'zip' || ext === 'iso') ? 'zip' : 'exe';
-    toast(`⬇️ ${d.name} indiriliyor...`);
-    setTimeout(() => {
-      if (!S) return;
-      addFile({ name: d.name, dir: 'indirilenler', kind, size: d.size, payload: d.payload, text: d.text, flag: d.flag, dl: key });
-      toast(`✅ ${d.name} indirildi → İndirilenler`, 'ok');
-      if (UI.app === 'files') renderApp();
-      save();
-    }, 1400);
+    const ext = d.name.split('.').pop().toLowerCase();
+    const kind = { txt: 'txt', zip: 'zip', iso: 'zip', mp3: 'mp3', doc: 'doc' }[ext] || 'exe';
+    addFile({ name: d.name, dir: 'indirilenler', kind, size: d.size, payload: d.payload, text: d.text, flag: d.flag, dl: key, task: d.task, mod: d.mod });
+    toast(`✅ ${d.name} indirildi → İndirilenler`, 'ok');
+    if (UI.app === 'files') renderApp();
+    save();
   }
 
   // ---------------------------------------------------------------------------
@@ -845,6 +882,7 @@
         <p class="muted small-t">Önce crypt0r sürecini durdur, sonra Kalkan AV veya terminaldeki <b>kurtar</b> komutuyla dosyaları geri al.</p>`, [['Tamam', 'primary', 'modalClose']]);
       return;
     }
+    if (modeHook('openFile', f)) return;
     if (f.payload === 'nobetci') {
       modal(`<h3>${esc(f.name)}</h3><pre class="viewer" style="color:var(--bad)">01001110 01000101 01000100 01000101 01001110\n\nbeni okuyamazsın.</pre>`, [['Kapat', 'primary', 'modalClose']]);
       return;
@@ -898,7 +936,8 @@
         infect(f.payload, f.id);
         break;
       default:
-        toast('Program çalıştı ama hiçbir şey olmadı.');
+        if (f.payload in MAL) infect(f.payload, f.id);
+        else toast('Program çalıştı ama hiçbir şey olmadı.');
     }
     renderHome();
     save();
@@ -962,6 +1001,7 @@
   }
 
   function onMalRemoved(kind) {
+    if (MAL_REMOVED[kind]) MAL_REMOVED[kind]();
     if (kind === 'ransomware') { S.ransom = null; if (UI.app === 'ransom') closeApp(); }
     if (kind === 'spyware') $('#ghost').classList.remove('on');
     if (kind === 'echo' && S.ai) {
@@ -1046,12 +1086,14 @@
       if (p.mal === 'ransomware') tickRansom(p);
       if (p.mal === 'spyware') tickSpy(p);
       if (p.mal === 'trojan') tickTrojan(p);
+      if (MAL_TICK[p.mal]) MAL_TICK[p.mal](p);
     }
 
     if (S.mode === 'survival') tickSurvival(); else deliverMail();
     if (S.mode === 'night' && tickNight()) return;
     if (S.mode === 'lab' && tickLab()) return;
     if (S.mode === 'ai' && tickAI()) return;
+    if (MODES[S.mode] && MODES[S.mode].tick()) return;
 
     // Kalıcı zararlıların yeniden başlaması
     S.respawns = S.respawns.filter((r) => {
@@ -1074,8 +1116,9 @@
     Snd.fan(S.cpu);
     renderStatus();
     // Kullanıcı dokunurken yeniden çizme (dokunuş kaçmasın)
-    if (['taskmgr', 'ransom', 'cams', 'lab'].includes(UI.app) && Date.now() - UI.touch > 900) renderApp();
-    if (['night', 'lab', 'ai'].includes(S.mode) && !UI.app && Date.now() - UI.touch > 900) renderHome();
+    const live = ['taskmgr', 'ransom', 'cams', 'lab'].concat((MODES[S.mode] && MODES[S.mode].liveApps) || []);
+    if (live.includes(UI.app) && Date.now() - UI.touch > 900) renderApp();
+    if ((['night', 'lab', 'ai'].includes(S.mode) || MODES[S.mode]) && !UI.app && Date.now() - UI.touch > 900) renderHome();
     if (S.ai && UI.app === 'echo') {
       const t = $('#echoSpread'); const b = $('#echoSpreadBar');
       if (t) t.textContent = '%' + Math.floor(S.ai.spread);
@@ -1520,7 +1563,7 @@
   function tickRansom(p) {
     if (!S.ransom) S.ransom = { left: FIDYE_SURE };
     if (p.t % 4 === 0) {
-      const target = S.files.find((f) => !f.trash && !f.locked && ['txt', 'img', 'doc'].includes(f.kind));
+      const target = S.files.find((f) => !f.trash && !f.locked && ['txt', 'img', 'doc', 'mp3', 'save'].includes(f.kind));
       if (target) {
         target.locked = true;
         if (UI.app === 'files') renderApp();
@@ -1637,6 +1680,7 @@
   }
 
   function gameOver() {
+    if (MODES[S.mode]) { MODES[S.mode].lose('bsod'); return; }
     if (S.mode === 'lab') {
       endScreen(`🧪 Bölüm ${S.lab.level} başarısız`,
         'Test sistemi mavi ekran verdi. Kalkan v10\'un yayın tarihi ertelendi.<br><span class="muted small-t">İpucu: kaçan zararlıları hemen Görev Yöneticisi\'nden sonlandır; kritik sistem süreçlerine dokunma.</span>', false,
@@ -1674,7 +1718,7 @@
   // ---------------------------------------------------------------------------
   function renderFiles() {
     const tabs = [['masaustu', 'Masaüstü'], ['belgeler', 'Belgeler'], ['indirilenler', 'İndirilenler']];
-    const list = S.files.filter((f) => f.dir === UI.filesTab && !f.trash);
+    const list = S.files.filter((f) => f.dir === UI.filesTab && !f.trash && !f.eaten && !f.hidden);
     return `<div class="tabs">${tabs.map(([k, n]) => `<button class="${UI.filesTab === k ? 'on' : ''}" data-act="filesTab" data-arg="${k}">${n}</button>`).join('')}</div>
       ${list.length ? list.map((f) => `<div class="list-item">
         <span class="fico">${fileIcon(f)}</span>
@@ -1817,6 +1861,7 @@
   }
 
   function renderNotes() {
+    if (MODES[S.mode]) return MODES[S.mode].notes();
     if (S.mode === 'lab') {
       return `<div class="pad"><div class="card"><b>🧪 Test Protokolü</b>
         <p class="small-t">1. Numuneleri Laboratuvar'da incele.<br>2. Emin değilsen 🔬 Analiz et.<br>3. Kaçan zararlıları Görev Yöneticisi / Terminal / Kalkan ile temizle.<br>4. Tüm numuneler bitip sistem temizlenince bölüm biter.</p>
@@ -1944,11 +1989,11 @@
     const findFile = (n) => S.files.find((f) => !f.trash && (f.name.toLowerCase() === n.toLowerCase() || fileName(f).toLowerCase() === n.toLowerCase()));
     switch (cmd.toLowerCase()) {
       case 'yardim': case 'help':
-        tprint('ls               dosyaları listele\ncat <dosya>      metin dosyasını oku\nps               süreçleri listele\nkill <pid>       süreci sonlandır\nrm <dosya>       dosyayı çöpe at\ntara             Kalkan taraması başlat\nyedekle          sunucu yedeği al (gece)\nrapor            gece raporunu gönder (gece)\nkurtar           şifreli dosyaları kurtar\ncoz <anahtar>    ARES.kilit şifresini çöz\nsistem           donanım durumu\ntemizle          ekranı temizle');
+        tprint('ls [-a]          dosyaları listele (-a: gizliler dahil)\ncat <dosya>      metin dosyasını oku\nps               süreçleri listele\nkill <pid>       süreci sonlandır\nrm <dosya>       dosyayı çöpe at\ntara             Kalkan taraması başlat\nyedekle          sunucu yedeği al (gece)\nrapor            gece raporunu gönder (gece)\nkurtar           şifreli dosyaları kurtar\ncoz <anahtar>    ARES.kilit şifresini çöz\nsistem           donanım durumu\ntemizle          ekranı temizle');
         break;
       case 'ls':
         for (const d of ['masaustu', 'belgeler', 'indirilenler']) {
-          const fs = S.files.filter((f) => f.dir === d && !f.trash);
+          const fs = S.files.filter((f) => f.dir === d && !f.trash && !f.eaten && (!f.hidden || arg === '-a'));
           tprint(`/${d}/`, 'dim');
           tprint(fs.length ? fs.map((f) => '  ' + fileName(f)).join('\n') : '  (boş)');
         }
@@ -2036,6 +2081,301 @@
         tprint(`${cmd}: komut bulunamadı. "yardim" yaz.`, 'err');
     }
   }
+
+  // ===========================================================================
+  // 📼 RETRO 2000'LER
+  // ===========================================================================
+  Object.assign(DL, {
+    mp3kral:    { name: 'MP3_Kral_Muzik.exe', size: '3 MB', mb: 3, payload: 'maymun' },
+    sahtedemo:  { name: 'MaviKaset_Demo.mp3.exe', size: '1 MB', mb: 1, payload: 'kurtcuk' },
+    slaytfull:  { name: 'SlaytYapici_Full_Surum.exe', size: '2 MB', mb: 2, payload: 'kurtcuk' },
+    mavidemo:   { name: 'MaviKaset_Demo.mp3', size: '4 MB', mb: 4, payload: 'safe', task: 'ayse' },
+    slayt:      { name: 'SlaytYapici_Deneme.exe', size: '6 MB', mb: 6, payload: 'safe', task: 'emre' },
+    smiley:     { name: 'Bedava_Smiley_Paketi.exe', size: '1 MB', mb: 1, payload: 'adware' },
+    odevdoc:    { name: 'Osmanli_Odev_Kaynak.doc', size: '0.5 MB', mb: 0.5, payload: 'safe', task: 'selin' },
+    odevhazir:  { name: 'Odev_Hazir_Indir.doc.exe', size: '0.8 MB', mb: 0.8, payload: 'maymun' },
+  });
+
+  const RETRO_FRIENDS = {
+    ayse:  { name: 'Ayşe ✿', status: 'Çevrimiçi', dot: '🟢', want: 'mavidemo' },
+    emre:  { name: 'Emre_06', status: 'Çevrimiçi', dot: '🟢', want: 'slayt' },
+    selin: { name: 'SeLiN', status: 'Meşgul', dot: '🔴', want: 'odevdoc' },
+  };
+  const MSN_SCRIPT = [
+    { at: 3, who: 'ayse', text: 'Selaaam! 😊 Mavi Kaset\'in yeni demo şarkısı çıkmış, bana atar mısın? Benim kotam bitti 😭' },
+    { at: 16, who: 'emre', text: 'Kanka yılbaşı partisi için slayt programı lazım. Deneme sürümü varmış bi yerde.' },
+    { at: 30, who: 'selin', text: 'Tarih ödevi için Osmanlı kaynak dosyası lazım, ansiklopedi sitesinde varmış galiba 📚' },
+    { at: 48, who: 'emre', text: '📳', nudge: true },
+    { at: 62, who: 'ayse', text: 'Bu arada mp3kral\'dan indirme sakın, geçen sefer bilgisayarımda maymun dans etti 🐒😂' },
+    { at: 90, who: 'emre', text: '"Full sürüm" diye bir şey görürsen bulaşma, deneme sürümü yeter 😄' },
+    { at: 120, who: 'selin', text: 'odevci.net diye bir site var ama orada her şey .exe çıkıyor, dikkat et!' },
+  ];
+  const RETRO_DESK = [['okul_odevi.doc', 'doc', '120 KB'], ['tatil_2003.jpg', 'img', '800 KB'], ['oyun_kayit.sav', 'save', '64 KB'], ['MSN_ifadeler.zip', 'zip', '300 KB'], ['en_iyi_sarkilar.txt', 'txt', '1 KB']];
+
+  Object.assign(APPS, { msn: { name: 'Messenger', icon: '💬', title: 'Messenger' } });
+  APP_MODES.msn = ['retro'];
+
+  function retroMsg(who, text, nudge) {
+    const R = S.retro;
+    R.chat[who].push({ from: who, text });
+    const viewing = UI.app === 'msn' && R.friend === who;
+    if (!viewing) R.unread[who]++;
+    Snd.beep(880, 0.07); setTimeout(() => Snd.beep(660, 0.09), 110);
+    if (nudge) retroShake();
+    if (!viewing) toast(`💬 ${RETRO_FRIENDS[who].name}: ${text}`);
+    if (UI.app === 'msn') renderApp(); else renderHome();
+  }
+
+  function retroShake() {
+    const os = $('#os');
+    os.classList.remove('shake'); void os.offsetWidth; os.classList.add('shake');
+    vibrate([80, 40, 80, 40, 80]);
+    setTimeout(() => os.classList.remove('shake'), 600);
+  }
+
+  function retroNeedLeft() {
+    const R = S.retro;
+    return Object.entries(RETRO_FRIENDS).filter(([k]) => !R.tasks[k])
+      .map(([, f]) => f.want)
+      .filter((key) => !S.files.some((f) => f.dl === key && !f.trash) && !R.queue.some((q) => q.key === key))
+      .reduce((a, key) => a + DL[key].mb, 0);
+  }
+
+  function retroEnd(win, why) {
+    const R = S.retro;
+    const done = Object.values(R.tasks).filter(Boolean).length;
+    endScreen(win ? '📼 Görev tamam!' : '📼 ' + why,
+      win ? `Ayşe şarkısını dinliyor, Emre'nin slaytları hazır, Selin ödevini teslim etti. MSN'de herkes mutlu. 🎉<br><span class="muted small-t">Kullanılan kota: ${R.used.toFixed(1)} / ${R.quota} MB · Arkadaşlık: ${'💚'.repeat(R.hearts)}</span>`
+        : `Tamamlanan görev: ${done}/3. ${why === 'Kota bitti!' ? 'Ay sonuna kadar internet yok 😭' : why === 'Arkadaşların seni engelledi' ? 'Virüslü dosya gönderdiğin için herkes seni MSN\'de engelledi 🚫' : 'Bilgisayar bir daha açılmadı.'}`,
+      win, '<button class="primary" style="width:100%;margin-top:10px" data-act="startMode" data-arg="retro">📼 Tekrar Oyna</button>');
+  }
+
+  MODES.retro = {
+    title: '📼 Retro 2000\'ler',
+    liveApps: [],
+    setup(s) {
+      s.homepage = 'arama2004.com';
+      s.scans = 1;
+      s.files = s.files.filter((f) => f.dir !== 'masaustu');
+      for (const [name, kind, size] of RETRO_DESK) addFile({ name, dir: 'masaustu', kind, size, text: kind === 'txt' ? '1. Mavi Kaset - Demo\n2. ???\n3. Sezen Aksu... (bitmedi)' : undefined });
+      s.retro = { quota: 25, used: 0, online: true, dropAt: 42, reconnectAt: 0, queue: [], tasks: { ayse: false, emre: false, selin: false },
+        chat: { ayse: [], emre: [], selin: [] }, unread: { ayse: 0, emre: 0, selin: 0 }, friend: 'ayse', hearts: 3, script: 0 };
+    },
+    intro: () => `<h3>📼 Yıl 2004</h3>
+      <p>Odanda, bip bip sesleriyle bağlanan çevirmeli internetinle oturuyorsun. MSN'de arkadaşların senden dosya istiyor.</p>
+      <p>Bu ayki kotan <b>25 MB</b>. İndirmeler yavaş, bağlantı arada bir kopuyor. Doğru dosyaları bul ve <b>💬 Messenger</b>'dan gönder.</p>
+      <p class="muted small-t">Sahte "MP3" ve "Full sürüm" dosyalarına dikkat: bilgisayarında maymun dans edebilir. 🐒</p>`,
+    status: () => (S.retro.online ? (S.retro.reconnectAt ? '📞…' : '📶 56k') : '📵'),
+    widget() {
+      const R = S.retro;
+      const done = Object.values(R.tasks).filter(Boolean).length;
+      const unread = Object.values(R.unread).reduce((a, b) => a + b, 0);
+      return `📼 2004 &nbsp;·&nbsp; 💬 Görevler <b>${done}/3</b> &nbsp;·&nbsp; ${R.online ? '📶 Bağlı' : '<b style="color:var(--bad)">📵 Koptu</b>'}<br>
+        <span class="muted small-t">Kota: <b>${R.used.toFixed(1)}</b> / ${R.quota} MB${R.queue.length ? ` · ⬇️ ${esc(DL[R.queue[0].key].name)} (${R.queue[0].left} sn)` : ''}${unread ? ` · 💬 ${unread} yeni mesaj` : ''}</span>`;
+    },
+    notes() {
+      const R = S.retro;
+      return `<div class="pad"><div class="card"><b>📼 Yapılacaklar</b>
+        ${Object.entries(RETRO_FRIENDS).map(([k, f]) => `<div class="obj ${R.tasks[k] ? 'done' : ''}"><span>${R.tasks[k] ? '☑' : '☐'}</span><span>${f.name}: ${esc(DL[f.want].name.replace(/_/g, ' ').replace(/\.\w+$/, ''))}</span></div>`).join('')}
+        <p class="small-t muted" style="margin-top:10px">Kota: ${R.used.toFixed(1)} / ${R.quota} MB · Kalan gerekli: ${retroNeedLeft().toFixed(1)} MB</p></div></div>`;
+    },
+    tick() {
+      const R = S.retro;
+      // Mesajlar
+      while (R.script < MSN_SCRIPT.length && S.time >= MSN_SCRIPT[R.script].at) {
+        const m = MSN_SCRIPT[R.script++];
+        retroMsg(m.who, m.text, m.nudge);
+      }
+      // Bağlantı
+      if (R.reconnectAt && S.time >= R.reconnectAt) {
+        R.reconnectAt = 0; R.online = true; R.dropAt = S.time + 35 + Math.floor(Math.random() * 25);
+        toast('📶 Bağlantı kuruldu: 56 kbps', 'ok');
+        if (UI.app === 'browser') renderApp();
+      } else if (R.online && S.time >= R.dropAt) {
+        R.online = false;
+        toast('📵 Bağlantı koptu! (Biri telefonu mu kaldırdı?)', 'bad');
+        Snd.whisper();
+        if (UI.app === 'browser') renderApp();
+      }
+      // İndirme kuyruğu (yalnızca bağlıyken ilerler)
+      if (R.online && !R.reconnectAt && R.queue.length) {
+        const q = R.queue[0];
+        if (--q.left <= 0) { R.queue.shift(); finishDownload(q.key); }
+      }
+      // Bitiş koşulları
+      if (Object.values(R.tasks).every(Boolean)) { retroEnd(true); return true; }
+      if (R.hearts <= 0) { retroEnd(false, 'Arkadaşların seni engelledi'); return true; }
+      if (retroNeedLeft() > R.quota - R.used + 1e-9) { retroEnd(false, 'Kota bitti!'); return true; }
+      return false;
+    },
+    lose() { retroEnd(false, 'Bilgisayar çöktü'); },
+    browserGate() {
+      const R = S.retro;
+      if (R.online) return '';
+      return `<div class="pad" style="text-align:center;margin-top:40px">
+        <div style="font-size:54px">${R.reconnectAt ? '📞' : '📵'}</div>
+        <h3>${R.reconnectAt ? 'Bağlanıyor...' : 'Sayfa görüntülenemiyor'}</h3>
+        <p class="muted">${R.reconnectAt ? 'Kullanıcı adı ve parola doğrulanıyor... 🔊 iiiiiğğğ-kşşşşş' : 'Çevirmeli ağ bağlantısı kesildi.'}</p>
+        ${R.reconnectAt ? '' : '<button class="primary" data-act="retroDial">📞 Yeniden Bağlan</button>'}
+        <p class="muted small-t" style="margin-top:20px">İpucu: Messenger ve dosyalarına bağlantı olmadan da erişebilirsin.</p></div>`;
+    },
+    download(key) {
+      const R = S.retro; const d = DL[key];
+      if (!R.online) { toast('📵 Bağlantı yok! Önce yeniden bağlan.', 'bad'); return true; }
+      if (R.queue.some((q) => q.key === key)) { toast('Bu dosya zaten iniyor.'); return true; }
+      if (R.used + d.mb > R.quota + 1e-9) { toast(`Kota yetersiz! (${(R.quota - R.used).toFixed(1)} MB kaldı)`, 'bad'); return true; }
+      R.used += d.mb;
+      R.queue.push({ key, left: Math.ceil(d.mb * 2.5) + 1 });
+      toast(`⬇️ ${d.name} indiriliyor... (56 kbps, ~${Math.ceil(d.mb * 2.5) + 1} sn)`);
+      renderHome();
+      return true;
+    },
+    openFile(f) {
+      if (f.kind === 'mp3') {
+        toast('🎵 Winamp: Mavi Kaset - Demo (2004) çalıyor... It really whips!', 'ok');
+        [523, 659, 784, 659].forEach((fr, i) => setTimeout(() => Snd.beep(fr, 0.12), i * 180));
+        return true;
+      }
+      if (f.payload === 'safe' && f.kind === 'exe') { toast('📽️ Slayt Yapıcı (30 günlük deneme) açıldı.', 'ok'); return true; }
+      return false;
+    },
+    apps: { msn: renderMsn },
+  };
+
+  function renderMsn() {
+    const R = S.retro;
+    const fr = R.friend;
+    R.unread[fr] = 0;
+    return `<div class="msn">
+      <div class="tabs">${Object.entries(RETRO_FRIENDS).map(([k, f]) => `<button class="${fr === k ? 'on' : ''}" data-act="msnFriend" data-arg="${k}">${f.dot} ${f.name}${R.unread[k] ? ` (${R.unread[k]})` : ''}${R.tasks[k] ? ' ✅' : ''}</button>`).join('')}</div>
+      <div class="pad small-t muted">${RETRO_FRIENDS[fr].name} · ${RETRO_FRIENDS[fr].status} · Arkadaşlık: ${'💚'.repeat(R.hearts)}${'🤍'.repeat(3 - R.hearts)}</div>
+      <div class="chat">${R.chat[fr].map((m) => `<div class="msg ${m.from === 'me' ? 'me' : 'echo'}">${esc(m.text)}</div>`).join('') || '<p class="muted">Henüz mesaj yok.</p>'}</div>
+      <div class="pad" style="display:flex;gap:8px">
+        <button class="primary" style="flex:1" data-act="msnPick">📎 Dosya gönder</button>
+        <button data-act="msnNudge">📳 Titreşim</button>
+      </div></div>`;
+  }
+
+  function retroSend(fileId) {
+    const R = S.retro; const fr = R.friend; const f = fileById(fileId);
+    closeModal();
+    if (!f) return;
+    R.chat[fr].push({ from: 'me', text: `📎 ${f.name} gönderildi` });
+    const st = S;
+    setTimeout(() => {
+      if (S !== st) return;
+      if (f.payload in MAL) {
+        R.hearts--;
+        retroMsg(fr, pick(['Ya bu ne?! Ekranımda maymun dans ediyor 😡', 'Virüs gönderdin bana!!! 😤', 'Annem bilgisayarı kapattı, sayende 😠']));
+      } else if (f.task === fr) {
+        R.tasks[fr] = true;
+        retroMsg(fr, pick(['Süpersin!!! Çok teşekkürler 😍', 'Kankaaa sağ ol, efsanesin 🤘', 'Teşekkürler, ödevi yetiştireceğim 🙏']));
+        toast(`✅ ${RETRO_FRIENDS[fr].name} görevi tamamlandı`, 'ok');
+      } else if (f.task) {
+        retroMsg(fr, 'Bu benim istediğim değil ki 😅 Başkasına mı gidecekti?');
+      } else {
+        retroMsg(fr, 'Bu ne ki? 😅 Ben başka bir şey istemiştim.');
+      }
+    }, 1200);
+    renderApp();
+  }
+
+  // Retro zararlıları
+  MAL_TICK.maymun = (p) => {
+    if (!$('#fxMonkey')) {
+      const m = document.createElement('div');
+      m.id = 'fxMonkey'; m.className = 'mode-fx monkey'; m.textContent = '🐒';
+      $('#os').appendChild(m);
+    }
+    if (p.t % 6 === 0) [392, 523, 392, 659].forEach((fr, i) => setTimeout(() => Snd.beep(fr, 0.08), i * 140));
+  };
+  MAL_REMOVED.maymun = () => { const m = $('#fxMonkey'); if (m) m.remove(); };
+  MAL_TICK.kurtcuk = (p) => {
+    if (p.t % 7 !== 0) return;
+    const v = S.files.find((f) => f.dir === 'masaustu' && !f.trash && !f.eaten);
+    if (v) { v.eaten = true; toast(`🐛 Kurtçuk "${v.name}" simgesini kemirdi!`, 'bad'); if (!UI.app) renderHome(); }
+  };
+  MAL_REMOVED.kurtcuk = () => {
+    const eaten = S.files.filter((f) => f.eaten);
+    eaten.forEach((f) => { f.eaten = false; });
+    if (eaten.length) setTimeout(() => toast(`🐛 Kurtçuk temizlendi: ${eaten.length} simge geri geldi`, 'ok'), 600);
+  };
+
+  // Retro siteler
+  Object.assign(SITES, {
+    'arama2004.com': {
+      title: 'Arama2004 — Türkiye\'nin Arama Motoru', rep: 'guvenli', keys: '', hiddenFromSearch: true,
+      html: () => `<div style="text-align:center"><div style="font-size:40px">🔍</div><h1 style="font-family:'Comic Sans MS',cursive">Arama2004</h1></div>
+        <p class="muted small-t" style="text-align:center">Ziyaretçi sayısı: 0001337 · En iyi 800x600 çözünürlükte görüntülenir</p>
+        <h2>🎵 Müzik</h2>
+        <div class="result">${go('mavikaset.com', 'Mavi Kaset — Resmî Grup Sitesi')}<div class="muted small-t">Yeni demo şarkımız ücretsiz!</div></div>
+        <div class="result">${go('mp3kral.net', 'MP3 KRAL — EN YENİ ŞARKILAR BEDAVA!!!')}<div class="muted small-t">10.000+ mp3 · hızlı indirme</div></div>
+        <h2>💾 Programlar</h2>
+        <div class="result">${go('yazilimdunyasi.com', 'Yazılım Dünyası')}<div class="muted small-t">Deneme sürümleri ve ücretsiz programlar</div></div>
+        <h2>📚 Ödev</h2>
+        <div class="result">${go('ansiklopedi2004.org', 'Ansiklopedi 2004')}<div class="muted small-t">Ücretsiz kaynaklar ve makaleler</div></div>
+        <div class="result">${go('odevci.net', 'ODEVCI.NET — Hazır Ödevler!!')}<div class="muted small-t">Tüm ödevler hazır, tek tıkla indir</div></div>`,
+    },
+    'mavikaset.com': {
+      title: 'Mavi Kaset', rep: 'guvenli', keys: '', hiddenFromSearch: true,
+      html: () => `<h1>🎸 Mavi Kaset</h1><p>Garaj grubumuzun ilk demo şarkısı çıktı! Ücretsiz indirip arkadaşlarına gönderebilirsin.</p>
+        ${dlRow('mavidemo', 'Grubun resmî sitesi')}
+        <p class="muted small-t">Konser: Cumartesi, okul spor salonu 🎤</p>`,
+    },
+    'mp3kral.net': {
+      title: 'MP3 KRAL', rep: 'riskli', keys: '', hiddenFromSearch: true,
+      html: () => `<div class="site-spam pad"><h1>🎶 MP3 KRAL 🎶</h1>
+        <marquee>EN YENİ ŞARKILAR %100 BEDAVA!!! HIZLI İNDİR!!!</marquee>
+        <div class="ad">🔥 TÜM ŞARKILAR TEK DOSYADA 🔥</div>
+        ${dlRow('mp3kral', 'MP3 indirici')}
+        ${dlRow('sahtedemo', '★★★★★ "aynısı"')}
+        <h2>Programlar</h2>
+        ${dlRow('slaytfull', 'FULL + SERİAL')}</div>`,
+    },
+    'yazilimdunyasi.com': {
+      title: 'Yazılım Dünyası', rep: 'orta', keys: '', hiddenFromSearch: true,
+      html: () => `<h1>💾 Yazılım Dünyası</h1>
+        <div class="card">${dlRow('slayt', 'Resmî deneme sürümü · 30 gün')}</div>
+        <div class="site-spam pad" style="border-radius:10px"><div class="ad">😃 BEDAVA 500 MSN İFADESİ!! 😃</div>${dlRow('smiley', 'reklam')}</div>`,
+    },
+    'ansiklopedi2004.org': {
+      title: 'Ansiklopedi 2004', rep: 'guvenli', keys: '', hiddenFromSearch: true,
+      html: () => `<h1>📚 Ansiklopedi 2004</h1><h2>Osmanlı İmparatorluğu</h2>
+        <p>Öğrenciler için hazırlanmış ücretsiz kaynak dosyası. Ödevinde kaynak göstermeyi unutma!</p>
+        ${dlRow('odevdoc', 'Word belgesi')}`,
+    },
+    'odevci.net': {
+      title: 'ODEVCI.NET', rep: 'riskli', keys: '', hiddenFromSearch: true,
+      html: () => `<div class="site-spam pad"><h1>📝 HAZIR ÖDEV!!!</h1><div class="ad">ÖDEVİN HAZIR!! SADECE İNDİR VE TESLİM ET!!</div>
+        ${dlRow('odevhazir', '"öğretmen anlamaz"')}</div>`,
+    },
+  });
+
+  Object.assign(EXTRA_ACTS, {
+    msnFriend: (k) => { S.retro.friend = k; renderApp(); },
+    msnNudge: () => {
+      const R = S.retro;
+      R.chat[R.friend].push({ from: 'me', text: '📳 Titreşim gönderdin!' });
+      retroShake(); renderApp();
+      const st = S;
+      setTimeout(() => { if (S === st) retroMsg(R.friend, pick(['Ne var yaa 😂', 'Tamam tamam buradayım!', 'Titreşim atma şuna 😄'])); }, 1500);
+    },
+    msnPick: () => {
+      const list = S.files.filter((f) => !f.trash && !f.eaten && (f.dir === 'indirilenler' || f.dir === 'belgeler'));
+      modal(`<h3>📎 ${RETRO_FRIENDS[S.retro.friend].name} kişisine gönder</h3>
+        ${list.length ? list.map((f) => `<div class="list-item" style="padding:8px 0"><span class="fico">${fileIcon(f)}</span><div class="grow ell">${esc(f.name)}</div>
+          <button class="small primary" data-act="msnSend" data-arg="${f.id}">Gönder</button></div>`).join('') : '<p class="muted">Gönderilecek dosya yok. Önce bir şey indir.</p>'}`,
+        [['Kapat', '', 'modalClose']]);
+    },
+    msnSend: (id) => retroSend(id),
+    retroDial: () => {
+      const R = S.retro;
+      if (R.online || R.reconnectAt) return;
+      R.reconnectAt = S.time + 4;
+      Snd.dialup();
+      renderApp();
+    },
+  });
 
   // ---------------------------------------------------------------------------
   // Modal ve bildirimler
@@ -2128,6 +2468,7 @@
     termQuick: (c) => runCmd(c),
     toggleSound: () => { S.sound = !S.sound; Snd.init(); Snd.fan(S.cpu); renderApp(); save(); },
     survival: () => { closeModal(); startGame(newState('survival'), true); },
+    startMode: (k) => { closeModal(); startGame(newState(k), true); },
     menu: () => { clearInterval(UI.timer); closeModal(); show('boot'); showBootMenu(); },
     labMenu: () => { closeModal(); showLabMenu(); },
     labLevel: (n) => { closeModal(); startLab(+n); },
@@ -2192,6 +2533,7 @@
     },
     resetAsk: () => modal('<h3>Oyunu sıfırla?</h3><p>Tüm ilerleme silinecek.</p>', [['Vazgeç', '', 'modalClose'], ['Sıfırla', 'danger', 'newgame']]),
   };
+  Object.assign(ACT, EXTRA_ACTS);
 
   document.addEventListener('click', (e) => {
     const el = e.target.closest('[data-act]');

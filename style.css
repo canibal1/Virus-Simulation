@@ -389,6 +389,35 @@ textarea.field { width: 100%; min-height: 140px; resize: vertical; font-family: 
 .choices { display: grid; gap: 8px; margin-top: 6px; }
 .choices button { text-align: left; }
 
+/* ---------- Retro 2000'ler ---------- */
+#os[data-mode="retro"] { font-family: Tahoma, Verdana, "Segoe UI", sans-serif; }
+#os[data-mode="retro"] #wall {
+  background: radial-gradient(140% 60% at 30% 100%, #4fa83a 0%, #3c8f2c 45%, transparent 46%),
+              linear-gradient(180deg, #2a62d9 0%, #6aa5f0 45%, #a9cdf7 70%, #4fa83a 71%, #2f7a22 100%);
+}
+#os[data-mode="retro"] #bar { background: linear-gradient(180deg, #3a7bf0, #1d4fc4); }
+#os[data-mode="retro"] .win-head { background: linear-gradient(180deg, #2e6ae6, #1747b8); color: #fff; border-bottom-color: #0e2f86; }
+#os[data-mode="retro"] .home-label { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+#os[data-mode="retro"] #dock { background: linear-gradient(180deg, #3a7bf0, #1d4fc4); border-radius: 12px; }
+.monkey {
+  position: absolute; z-index: 45; top: 40%; left: 0; font-size: 56px; pointer-events: none;
+  animation: monkeyDance 3.2s ease-in-out infinite alternate;
+}
+@keyframes monkeyDance {
+  0% { transform: translate(0, 0) rotate(-15deg); }
+  25% { transform: translate(25vw, -60px) rotate(15deg); }
+  50% { transform: translate(45vw, 30px) rotate(-15deg) scaleX(-1); }
+  75% { transform: translate(60vw, -40px) rotate(15deg) scaleX(-1); }
+  100% { transform: translate(70vw, 10px) rotate(-10deg); }
+}
+@media (min-width: 520px) { @keyframes monkeyDance { 100% { transform: translate(300px, 10px) rotate(-10deg); } } }
+#os.shake { animation: shake 0.5s linear 1; }
+@keyframes shake {
+  0%, 100% { transform: none; } 20% { transform: translate(-8px, 3px); } 40% { transform: translate(7px, -4px); }
+  60% { transform: translate(-6px, -2px); } 80% { transform: translate(5px, 4px); }
+}
+marquee { color: #c00; font-weight: bold; }
+
 /* ---------- Mavi ekran ---------- */
 #bsod { background: #0a59c9; color: #fff; padding: calc(60px + var(--safe-top)) 26px 30px; z-index: 100; }
 #bsod .sad { font-size: 90px; line-height: 1; margin-bottom: 24px; }
