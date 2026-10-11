@@ -22,7 +22,28 @@
     ransomware: { proc: 'crypt0r.exe',     pub: 'Bilinmiyor', cpu: 24, ram: 260, label: 'Ransomware (Fidye Yazılımı)' },
     spyware:    { proc: 'goz_servisi.dll', pub: 'Sanal OS',   cpu: 5,  ram: 70,  label: 'Spyware / Keylogger', persist: true },
     trojan:     { proc: 'svch0st.exe',     pub: 'Sanal 0S',   cpu: 12, ram: 320, label: 'Trojan / System Wiper' },
+    nobetci:    { proc: 'nobetci.exe',     pub: 'Meridyen IT', cpu: 14, ram: 210, label: 'Bilinmeyen program (Nöbetçi)' },
   };
+
+  // Gece Vardiyası
+  const NIGHT_HOUR = 75;               // 1 oyun saati = 75 sn
+  const NIGHT_END = NIGHT_HOUR * 6;    // 06:00
+  const ROOMS = ['Lobi', 'Koridor', 'Sunucu Odası', 'Ofisin'];
+  const NIGHT_LINES = [
+    'Bu binada gece kimse kalmaz.',
+    'Kamera 3\'e bakma.',
+    'Seni izlemiyorum. Sadece bekliyorum.',
+    'Neden hâlâ buradasın?',
+    'Işıkları açık bıraktın.',
+    'Sabaha az kaldı. Benim için değil.',
+    'Selim de buradaydı.',
+  ];
+  const NIGHT_NOTES = [
+    ['neden_buradasin.txt', 'Gece vardiyası.\nTek kişi.\nNeden sen?'],
+    ['kat3.txt', '3. kattaki ışıklar 02:14\'te açıldı.\nKimse açmadı.'],
+    ['beni_silme.txt', 'Beni silersen kim bekleyecek burayı?'],
+  ];
+  const NIGHT_COPIES = [['svc_bakim.dat', 'belgeler', '48 KB'], ['yedek_0x3.dat', 'indirilenler', '12 KB'], ['kamera_sur.cfg', 'belgeler', '3 KB']];
 
   const BASE_PROCS = [
     { name: 'cekirdek.sys',     pub: 'Sanal OS', cpu: 3, ram: 120, critical: true },
@@ -45,6 +66,7 @@
     kirici:   { name: 'SifreKirici.exe', size: '9.4 MB', payload: 'spyware' },
     lisans:   { name: 'Kalkan_Lisans_Yenile.exe', size: '1.8 MB', payload: 'trojan' },
     aresanahtar: { name: 'ARES_anahtar.zip', size: '14 KB', payload: 'ransomware' },
+    hediye:   { name: 'vardiya_hediyesi.zip', size: '220 KB', payload: 'gift' },
     iso:      { name: 'ARES_tam_surum.iso', size: '4.1 GB', payload: 'ransomware' },
     kalkan:   { name: 'Kalkan_Guncelleme.exe', size: '38 MB', payload: 'shield' },
     tema:     { name: 'Retro_Tema.zip', size: '640 KB', payload: 'theme' },
@@ -113,6 +135,29 @@
       attach: 'aresanahtar',
     },
   ];
+  MAILS.push(
+    {
+      id: 'mudur', mode: 'night', when: (s) => s.time >= 3, kind: 'legit', reply: true,
+      from: 'Kemal Arslan (BT Müdürü)', addr: 'kemal.arslan@meridyen.com.tr', subject: 'Bu geceki görevlerin',
+      body: 'İyi akşamlar,\n\nBu gece sistemde tek sensin. Sabah 06:00\'ya kadar şunları halletmeni rica ediyorum:\n\n1) Bu postayı yanıtla\n2) Terminalde "yedekle" ile sunucu yedeğini al\n3) Kalkan ile bir tam tarama yap\n4) 05:00\'ten sonra terminalde "rapor" ile gece raporunu gönder\n\nNot: Kameralarda arıza var, 3. kattaki eski sistem bazen kendi kendine açılıyor. Önemseme.\n\nKemal',
+    },
+    {
+      id: 'hediye', mode: 'night', when: (s) => s.time >= 60, kind: 'phish',
+      from: 'İK Departmanı', addr: 'ik@meridyen-portal.net', subject: 'Gece vardiyası için küçük bir hediye 🎁',
+      body: 'Değerli çalışanımız,\n\nGece vardiyasındaki emekleriniz için size küçük bir sürprizimiz var! Ekteki dosyayı açarak hediyenizi hemen görüntüleyin.\n\nMeridyen Lojistik İK',
+      attach: 'hediye',
+    },
+    {
+      id: 'selim', mode: 'night', when: (s) => s.night.started && s.time >= s.night.startedAt + 45, kind: 'legit',
+      from: 'Selim D. (eski gece görevlisi)', addr: 'selim.d@meridyen.com.tr', subject: 'Kameralara bak',
+      body: 'Bu postayı otomatik gönderilecek şekilde ayarlamıştım. Okuyorsan o yine uyanmış demektir.\n\nAdı nobetci.exe. Süreci kapatınca geri çekiliyor ama sistemde 3 kopyası var. Hepsi silinmeden gitmiyor.\n\nKalkan kopyaları bulur ama silemez. Bulduklarını kendin sil.\n\nNe olursa olsun Ofis kamerasına ulaşmasına izin verme.\n\n— Selim',
+    },
+    {
+      id: 'sabah', mode: 'night', when: (s) => s.time >= NIGHT_HOUR * 4.5 && !s.night.defeated && s.night.started, kind: 'odd',
+      from: '(gönderen yok)', addr: 'noreply@meridyen.local', subject: 'Neredeyse sabah',
+      body: 'Sabah olunca gideceksin.\nBen burada kalacağım.\nHep kaldım.',
+    },
+  );
   const mailDef = (id) => MAILS.find((m) => m.id === id);
 
   // Hayatta kalma modunda ağdan sızan dosyalar
@@ -165,6 +210,14 @@
     addFile({ name: 'silinen_mesaj.txt', dir: 'belgeler', kind: 'txt', size: '1 KB', trash: true, protect: true, flag: 'p3',
       text: 'Kimden: Deniz K.\nKonu: (silindi)\n\nBunu sana bırakıyorum, çöpe atıp izini kaybettirdim.\n\n>> PARÇA 3:  77\n\nAnahtarı birleştir ve ARES.kilit dosyasını aç.\nKimseye fidye ödeme, kimseye güvenme.' });
     if (mode === 'survival') s.files = s.files.filter((f) => f.kind !== 'ares' && !f.flag);
+    if (mode === 'night') {
+      s.files = s.files.filter((f) => f.kind !== 'ares' && !f.flag && f.kind !== 'txt');
+      s.scans = 2;
+      s.night = { pos: 0, started: false, startedAt: 0, moveAt: 0, respawnAt: 0, defeated: false,
+        backup: -1, scanned: false, replied: false, report: false, notes: 0, nextOdd: 30 };
+      addFile({ name: 'vardiya_notu.txt', dir: 'masaustu', kind: 'txt', size: '1 KB',
+        text: 'MERİDYEN LOJİSTİK — GECE VARDİYASI\n\nVardiya: 00:00 - 06:00\nGörevlerin Posta\'da.\n\nKameralar uygulaması binadaki 4 kamerayı gösterir.\nOfis kamerası = senin odan.\n\nKahve makinesi bozuk.' });
+    }
     s.procs = BASE_PROCS.map((p) => ({ ...p, pid: nextPid() }));
     return s;
   }
@@ -173,18 +226,19 @@
   function addFile(f) { const file = { id: S.nextId++, locked: false, trash: false, ...f }; S.files.push(file); return file; }
   function fileById(id) { return S.files.find((f) => f.id === +id); }
 
-  function save() { if (!S || S.mode === 'survival') return; try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* depolama yoksa sessiz geç */ } }
-  function load() {
+  const saveKey = (mode) => SAVE_KEY + (mode === 'night' ? '-gece' : '');
+  function save() { if (!S || S.mode === 'survival') return; try { localStorage.setItem(saveKey(S.mode), JSON.stringify(S)); } catch (e) { /* depolama yoksa sessiz geç */ } }
+  function load(mode = 'story') {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
+      const raw = localStorage.getItem(saveKey(mode));
       if (!raw) return null;
       const d = JSON.parse(raw);
       if (!d || d.v !== 1 || d.flags.done || d.lives <= 0) return null;
-      d.mode = 'story'; d.mails = d.mails || []; d.stats.phish = d.stats.phish || 0;
+      d.mode = d.mode === 'night' ? 'night' : 'story'; d.mails = d.mails || []; d.stats.phish = d.stats.phish || 0;
       return d;
     } catch (e) { return null; }
   }
-  function wipeSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* yok say */ } }
+  function wipeSave(mode = S && S.mode) { try { localStorage.removeItem(saveKey(mode)); } catch (e) { /* yok say */ } }
 
   // ---------------------------------------------------------------------------
   // Ses (fan uğultusu ve bip) — yalnızca kullanıcı etkileşiminden sonra başlar
@@ -214,6 +268,26 @@
       if (!this.gain) return;
       const v = S.sound ? Math.pow(cpu / 100, 2.2) * 0.35 : 0;
       this.gain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.5);
+    },
+    step() {
+      if (!this.ctx || !S || !S.sound) return;
+      const t = this.ctx.currentTime;
+      const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(75, t); o.frequency.exponentialRampToValueAtTime(35, t + 0.25);
+      g.gain.setValueAtTime(0.35, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      o.connect(g).connect(this.ctx.destination); o.start(t); o.stop(t + 0.4);
+    },
+    whisper() {
+      if (!this.ctx || !S || !S.sound) return;
+      const t = this.ctx.currentTime; const len = this.ctx.sampleRate * 1.4;
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / len);
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const f = this.ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1700; f.Q.value = 4;
+      const g = this.ctx.createGain(); g.gain.value = 0.25;
+      src.connect(f).connect(g).connect(this.ctx.destination); src.start(t);
     },
     beep(freq = 440, dur = 0.12) {
       if (!this.ctx || !S || !S.sound) return;
@@ -263,10 +337,13 @@
 
   function showBootMenu() {
     const saved = load();
+    const savedNight = load('night');
     const menu = $('#bootMenu');
     menu.innerHTML =
-      (saved ? '<button class="primary" data-act="continue">Devam Et</button>' : '') +
+      (saved ? '<button class="primary" data-act="continue">Devam Et (Hikâye)</button>' : '') +
+      (savedNight ? `<button class="${saved ? '' : 'primary'}" data-act="continueNight">Devam Et (Gece Vardiyası)</button>` : '') +
       `<button class="${saved ? '' : 'primary'}" data-act="newgame">Yeni Oyun (Hikâye)</button>` +
+      '<button data-act="night">🌙 Gece Vardiyası</button>' +
       `<button data-act="survival">⏱️ Hayatta Kalma Modu${getBest() ? ` · Rekor ${fmtTime(getBest())}` : ''}</button>` +
       '<p class="muted small-t" style="text-align:center">Tüm tehditler kurgusaldır ve yalnızca oyunun içinde çalışır.</p>';
     menu.classList.remove('hidden');
@@ -277,13 +354,19 @@
     S = state;
     Snd.init();
     show('os');
-    UI.app = null; UI.term = []; UI.scan = null; UI.bsod = false; UI.mail = null;
+    UI.app = null; UI.term = []; UI.scan = null; UI.bsod = false; UI.mail = null; UI.paused = false;
     UI.br = { url: S.homepage, hist: [], src: false, query: '' };
     closeApp();
     renderStatus();
     clearInterval(UI.timer);
     UI.timer = setInterval(tick, 1000);
-    if (fresh && S.mode === 'survival') {
+    if (fresh && S.mode === 'night') {
+      modal(`<h3>🌙 Gece Vardiyası</h3>
+        <p><b>Meridyen Lojistik</b>'te gece vardiyasındasın. Binada senden başka kimse yok. En azından öyle olması gerekiyor.</p>
+        <p>Sabah <b>06:00</b>'ya kadar müdürünün postadaki görevlerini tamamla ve gece raporunu gönder.</p>
+        <p class="muted small-t">📹 Kameralar uygulamasına göz kulak ol. Bu bölümde ses açıkken oynamanı öneririz.</p>`,
+        [['Vardiyaya Başla', 'primary', 'modalClose']]);
+    } else if (fresh && S.mode === 'survival') {
       modal(`<h3>⏱️ Hayatta Kalma</h3>
         <p>Sistem sürekli saldırı altında. Tehditler <b>dalgalar halinde</b> ağdan sızacak ve her dalga bir öncekinden daha erken gelecek.</p>
         <p>Görev yöneticisi, terminal ve Kalkan ile sistemi ayakta tut. Her dakika <b>+1 tarama hakkı</b> kazanırsın (en fazla 5).</p>
@@ -313,6 +396,7 @@
     taskmgr:  { name: 'Görev Yön.',  icon: '📊', title: 'Görev Yöneticisi' },
     av:       { name: 'Kalkan AV',   icon: '🛡️', title: 'Kalkan Antivirüs' },
     mail:     { name: 'Posta',       icon: '✉️', title: 'Posta' },
+    cams:     { name: 'Kameralar',   icon: '📹', title: 'Güvenlik Kameraları' },
     notes:    { name: 'Notlar',      icon: '📝', title: 'Notlar' },
     trash:    { name: 'Çöp Kutusu',  icon: '🗑️', title: 'Çöp Kutusu' },
     settings: { name: 'Ayarlar',     icon: '⚙️', title: 'Ayarlar' },
@@ -339,7 +423,12 @@
     const desk = S.files.filter((f) => f.dir === 'masaustu' && !f.trash);
     const unread = S.mails.filter((m) => !m.read).length;
     const badges = { trash: trashN, mail: unread };
-    const widget = S.mode === 'survival'
+    const N = S.night;
+    const camState = !N ? '' : N.defeated ? 'Sakin' : hasMal('nobetci') ? ROOMS[N.pos] : N.started ? 'Sinyal yok' : 'Normal';
+    const widget = S.mode === 'night'
+      ? `🌙 <b>${clockText()}</b> &nbsp;·&nbsp; 📋 Görevler <b>${nightTasks().filter(Boolean).length}/4</b>
+        &nbsp;·&nbsp; 🛡️ ${S.scans} tarama<br><span class="muted small-t">📹 Hareket: <b style="color:${hasMal('nobetci') ? 'var(--bad)' : 'inherit'}">${camState}</b></span>`
+      : S.mode === 'survival'
       ? `⏱️ <b id="survTime">${fmtTime(S.time)}</b> &nbsp;·&nbsp; 🌊 Dalga <b>${S.wave}</b>
         &nbsp;·&nbsp; 🛡️ ${S.scans} tarama<br><span class="muted small-t">Sonraki saldırı: <span id="survNext">${Math.max(0, S.nextAttack - S.time)}</span> sn · Rekor ${fmtTime(getBest())}</span>`
       : `🔑 Anahtar parçaları: <b>${found}/3</b>
@@ -347,7 +436,7 @@
     $('#home').innerHTML = `
       <div class="home-widget">${widget}</div>
       <div class="grid">
-        ${Object.keys(APPS).filter((k) => !APPS[k].hidden && !DOCK.includes(k) && !(k === 'mail' && S.mode === 'survival'))
+        ${Object.keys(APPS).filter((k) => !APPS[k].hidden && !DOCK.includes(k) && !(k === 'mail' && S.mode === 'survival') && !(k === 'cams' && S.mode !== 'night'))
           .map((k) => iconHtml(k, badges[k] || 0)).join('')}
       </div>
       <div class="home-label">Masaüstü</div>
@@ -358,18 +447,29 @@
     $('#dock').innerHTML = DOCK.map((k) => iconHtml(k)).join('');
     $('#os').classList.toggle('theme-retro', S.theme === 'retro');
     $('#os').classList.toggle('ransomed', hasMal('ransomware'));
+    $('#os').classList.toggle('night', S.mode === 'night');
+  }
+
+  function clockText() {
+    let h; let m;
+    if (S.mode === 'night') {
+      const t = Math.min(S.time, NIGHT_END);
+      h = Math.floor(t / NIGHT_HOUR); m = Math.floor((t % NIGHT_HOUR) * 60 / NIGHT_HOUR);
+    } else {
+      const mm = Math.floor(S.time / 60);
+      h = (23 + Math.floor((47 + mm) / 60)) % 24; m = (47 + mm) % 60;
+    }
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
 
   function renderStatus() {
-    const m = Math.floor(S.time / 60);
-    const h = (23 + Math.floor((47 + m) / 60)) % 24;
-    $('#clock').textContent = `${String(h).padStart(2, '0')}:${String((47 + m) % 60).padStart(2, '0')}`;
+    $('#clock').textContent = clockText();
     const c = $('#mCpu'); c.textContent = `CPU ${Math.round(S.cpu)}%`;
     c.className = 'meter' + (S.cpu > 85 ? ' hot' : S.cpu > 60 ? ' warm' : '');
     const t = $('#mTemp'); t.textContent = `${Math.round(S.temp)}°C`;
     t.className = 'meter' + (S.temp > 78 ? ' hot' : S.temp > 62 ? ' warm' : '');
     $('#mLives').textContent = '♥'.repeat(S.lives) + '♡'.repeat(Math.max(0, 3 - S.lives));
-    $('#cam').classList.toggle('on', hasMal('spyware'));
+    $('#cam').classList.toggle('on', hasMal('spyware') || hasMal('nobetci'));
     $('#os').classList.toggle('lag', S.cpu > 85);
   }
 
@@ -398,7 +498,7 @@
     const id = UI.app;
     $('#winTitle').textContent = APPS[id].title;
     const body = $('#winBody');
-    const R = { mail: renderMail, browser: renderBrowser, files: renderFiles, terminal: renderTerminal, taskmgr: renderTaskmgr,
+    const R = { cams: renderCams, mail: renderMail, browser: renderBrowser, files: renderFiles, terminal: renderTerminal, taskmgr: renderTaskmgr,
       av: renderAV, notes: renderNotes, trash: renderTrash, settings: renderSettings, viewer: renderViewer, ransom: renderRansom };
     const keepScroll = id === 'taskmgr' || id === 'av' ? body.scrollTop : 0;
     body.innerHTML = R[id]();
@@ -615,6 +715,10 @@
         <p class="muted small-t">Önce crypt0r sürecini durdur, sonra Kalkan AV veya terminaldeki <b>kurtar</b> komutuyla dosyaları geri al.</p>`, [['Tamam', 'primary', 'modalClose']]);
       return;
     }
+    if (f.payload === 'nobetci') {
+      modal(`<h3>${esc(f.name)}</h3><pre class="viewer" style="color:var(--bad)">01001110 01000101 01000100 01000101 01001110\n\nbeni okuyamazsın.</pre>`, [['Kapat', 'primary', 'modalClose']]);
+      return;
+    }
     if (f.kind === 'ares') { openAres(); return; }
     if (f.kind === 'txt') {
       UI.view = f.id;
@@ -646,6 +750,11 @@
       case 'shield':
         if (!S.shield) { S.shield = true; S.scans += 3; toast('🛡️ Kalkan v9 kuruldu: akıllı risk analizi + 3 tarama', 'ok'); }
         else toast('Kalkan zaten güncel.');
+        break;
+      case 'gift':
+        if (S.night && !S.night.started) startNobetci(true);
+        else if (S.night && hasMal('nobetci')) { S.night.pos = Math.min(2, S.night.pos + 1); nightSay('Hediyeni zaten aldım.'); }
+        else toast('Dosya boş görünüyor.');
         break;
       case 'theme':
         S.theme = S.theme === 'retro' ? 'normal' : 'retro';
@@ -721,19 +830,31 @@
   function onMalRemoved(kind) {
     if (kind === 'ransomware') { S.ransom = null; if (UI.app === 'ransom') closeApp(); }
     if (kind === 'spyware') $('#ghost').classList.remove('on');
+    if (kind === 'nobetci' && S.night) {
+      S.night.pos = 0;
+      if (nightCopies() > 0) {
+        S.night.respawnAt = S.time + 30;
+        setTimeout(() => toast('📹 Siluet kayboldu... ama kopyaları hâlâ sistemde.', 'bad'), 600);
+      } else defeatNobetci();
+    }
   }
 
   function quarantine() {
-    const mals = S.procs.filter((p) => p.mal);
+    // Nöbetçi karantinaya alınamaz; elle silinmesi gerekir.
+    const tough = (k) => k === 'nobetci';
+    const mals = S.procs.filter((p) => p.mal && !tough(p.mal));
     for (const p of mals) onMalRemoved(p.mal);
-    S.procs = S.procs.filter((p) => !p.mal);
-    const bad = S.files.filter((f) => f.payload in MAL);
-    S.files = S.files.filter((f) => !(f.payload in MAL));
+    S.procs = S.procs.filter((p) => !p.mal || tough(p.mal));
+    const bad = S.files.filter((f) => f.payload in MAL && !tough(f.payload));
+    S.files = S.files.filter((f) => !(f.payload in MAL) || tough(f.payload));
+    if (S.procs.some((p) => tough(p.mal)) || S.files.some((f) => tough(f.payload) && !f.trash)) {
+      setTimeout(() => toast('⚠️ nobetci.exe karantinaya alınamadı: erişim reddedildi. Kopyaları elle silmelisin.', 'bad'), 900);
+    }
     S.respawns = [];
     if (S.homepage !== 'chronos://ana') S.homepage = 'chronos://ana';
     $('#popups').innerHTML = '';
     S.stats.cured += mals.length;
-    toast(`🛡️ ${mals.length} süreç ve ${bad.length} dosya karantinaya alındı.`, 'ok');
+    if (mals.length || bad.length) toast(`🛡️ ${mals.length} süreç ve ${bad.length} dosya karantinaya alındı.`, 'ok');
     renderHome();
     save();
   }
@@ -777,7 +898,7 @@
   // Oyun döngüsü
   // ---------------------------------------------------------------------------
   function tick() {
-    if (!S || UI.bsod) return;
+    if (!S || UI.bsod || UI.paused) return;
     S.time++;
 
     for (const p of [...S.procs]) {
@@ -790,6 +911,7 @@
     }
 
     if (S.mode === 'survival') tickSurvival(); else deliverMail();
+    if (S.mode === 'night' && tickNight()) return;
 
     // Kalıcı zararlıların yeniden başlaması
     S.respawns = S.respawns.filter((r) => {
@@ -812,7 +934,8 @@
     Snd.fan(S.cpu);
     renderStatus();
     // Kullanıcı dokunurken yeniden çizme (dokunuş kaçmasın)
-    if ((UI.app === 'taskmgr' || UI.app === 'ransom') && Date.now() - UI.touch > 900) renderApp();
+    if ((UI.app === 'taskmgr' || UI.app === 'ransom' || UI.app === 'cams') && Date.now() - UI.touch > 900) renderApp();
+    if (S.mode === 'night' && !UI.app && Date.now() - UI.touch > 900) renderHome();
     if (S.mode === 'survival' && !UI.app) {
       const t = $('#survTime'); const n = $('#survNext');
       if (t) t.textContent = fmtTime(S.time);
@@ -821,9 +944,159 @@
     if (S.time % 5 === 0) save();
   }
 
+  // ---------------------------------------------------------------------------
+  // Gece Vardiyası
+  // ---------------------------------------------------------------------------
+  const nightCopies = () => S.files.filter((f) => f.payload === 'nobetci' && !f.trash).length;
+  const nightTasks = () => { const N = S.night; return [N.replied, N.backup >= 100, N.scanned, N.report]; };
+  const nightHour = () => Math.floor(S.time / NIGHT_HOUR);
+  const moveDelay = () => Math.max(12, 30 - nightHour() * 3);
+
+  function glitch() {
+    const os = $('#os');
+    os.classList.remove('glitch'); void os.offsetWidth; os.classList.add('glitch');
+    setTimeout(() => os.classList.remove('glitch'), 700);
+  }
+
+  function nightSay(text) {
+    tprint('[nobetci] ' + text, 'err');
+    refreshTerm();
+    toast('💬 ' + text, 'bad');
+  }
+
+  function startNobetci(early) {
+    const N = S.night;
+    if (N.started) return;
+    N.started = true; N.startedAt = S.time;
+    for (const [name, dir, size] of NIGHT_COPIES) addFile({ name, dir, kind: 'doc', size, payload: 'nobetci' });
+    S.procs.push({ name: MAL.nobetci.proc, pub: MAL.nobetci.pub, cpu: MAL.nobetci.cpu, ram: MAL.nobetci.ram, mal: 'nobetci', t: 0, pid: nextPid() });
+    S.stats.infections++;
+    N.pos = early ? 1 : 0;
+    N.moveAt = S.time + moveDelay();
+    glitch(); vibrate([120, 80, 120]); Snd.whisper();
+    toast(`📹 Kamera ${N.pos + 1}: ${ROOMS[N.pos]}'de hareket algılandı`, 'bad');
+    setTimeout(() => nightSay('Merhaba. Bu gece yalnız değilsin.'), 1500);
+    renderHome();
+    save();
+  }
+
+  function nightCopyRemoved() {
+    const N = S.night;
+    if (!N || N.defeated) return;
+    const left = nightCopies();
+    toast(`🗑️ Nöbetçi kopyası silindi. Kalan: ${left}`, 'ok');
+    if (hasMal('nobetci') && left > 0) {
+      N.pos = Math.min(2, N.pos + 1);
+      N.moveAt = S.time + moveDelay();
+      glitch(); Snd.step();
+      setTimeout(() => nightSay('Bunu yapmamalıydın.'), 500);
+    }
+    if (left === 0 && !hasMal('nobetci')) defeatNobetci();
+    else if (left === 0) setTimeout(() => toast('Tüm kopyalar silindi. Şimdi süreci sonlandır!', 'ok'), 900);
+  }
+
+  function defeatNobetci() {
+    const N = S.night;
+    if (N.defeated) return;
+    N.defeated = true; N.respawnAt = 0;
+    S.stats.cured++;
+    $('#ghost').classList.remove('on');
+    glitch();
+    modal(`<h3>📹 Sinyal kesildi</h3><p class="viewer">nobetci.exe: ...peki.\n\nSabah görüşürüz.</p>
+      <p class="muted small-t">Nöbetçi sistemden silindi. Kameralar artık sakin.</p>`, [['Tamam', 'primary', 'modalClose']]);
+    renderHome(); save();
+  }
+
+  function caught() {
+    UI.paused = true;
+    const el = $('#blackout');
+    el.classList.remove('hidden');
+    vibrate([600, 100, 300]);
+    Snd.step(); Snd.beep(55, 0.9);
+    setTimeout(() => { el.classList.add('hidden'); UI.paused = false; bsod('KONTROL_KAYBEDİLDİ', 'nobetci.exe'); }, 1800);
+  }
+
+  function nightOddEvent() {
+    const r = Math.random();
+    if (r < 0.3) nightSay(pick(NIGHT_LINES));
+    else if (r < 0.5) { glitch(); Snd.whisper(); }
+    else if (r < 0.7) {
+      const g = $('#ghost'); g.classList.add('on');
+      g.style.left = Math.round(10 + Math.random() * 80) + '%';
+      g.style.top = Math.round(15 + Math.random() * 70) + '%';
+      setTimeout(() => g.classList.remove('on'), 2600);
+    } else if (S.night.notes < NIGHT_NOTES.length) {
+      const [name, text] = NIGHT_NOTES[S.night.notes++];
+      addFile({ name, dir: 'masaustu', kind: 'txt', size: '1 KB', text });
+      toast(`📄 Masaüstünde yeni bir dosya: ${name}`, 'bad');
+      Snd.beep(220, 0.1);
+      if (!UI.app) renderHome();
+    } else { Snd.step(); toast('🔊 Koridordan bir ses geldi.', 'bad'); }
+  }
+
+  // true dönerse bu tikte başka bir şey yapılmaz (oyun bitti veya yakalandın)
+  function tickNight() {
+    const N = S.night;
+    if (S.time % NIGHT_HOUR === 0 && S.time < NIGHT_END) toast(`🕐 Saat ${clockText()}`);
+    if (S.time >= NIGHT_END) { endNight(); return true; }
+    if (!N.started && S.time >= NIGHT_HOUR * 1.6) startNobetci(false);
+
+    if (N.started && !N.defeated && !hasMal('nobetci') && N.respawnAt && S.time >= N.respawnAt) {
+      N.respawnAt = 0;
+      if (nightCopies() > 0) {
+        S.procs.push({ name: MAL.nobetci.proc, pub: MAL.nobetci.pub, cpu: MAL.nobetci.cpu, ram: MAL.nobetci.ram, mal: 'nobetci', t: 0, pid: nextPid() });
+        N.pos = 0; N.moveAt = S.time + moveDelay();
+        toast('📹 Kamera 1: Lobide yeniden hareket var.', 'bad');
+        Snd.whisper();
+      } else defeatNobetci();
+    }
+
+    if (hasMal('nobetci')) {
+      if (S.time >= N.moveAt) {
+        N.pos++;
+        N.moveAt = S.time + moveDelay();
+        Snd.step(); vibrate(60);
+        if (N.pos >= 3) { caught(); return true; }
+        toast(`📹 Kamera ${N.pos + 1}: ${ROOMS[N.pos]}'de hareket!`, 'bad');
+        if (N.pos === 2) setTimeout(() => nightSay('Neredeyse geldim.'), 800);
+      }
+      if (S.time >= N.nextOdd) { N.nextOdd = S.time + 10 + Math.floor(Math.random() * 10); nightOddEvent(); }
+    }
+
+    if (N.backup >= 0 && N.backup < 100) {
+      if (hasMal('nobetci')) { if (S.time % 10 === 0) toast('💾 Yedekleme duraklatıldı: disk kilitli', 'bad'); }
+      else {
+        N.backup = Math.min(100, N.backup + 2.5);
+        if (N.backup >= 100) { toast('💾 Sunucu yedeği tamamlandı', 'ok'); save(); }
+      }
+    }
+    return false;
+  }
+
+  function endNight() {
+    const N = S.night;
+    wipeSave('night');
+    if (!N.report) {
+      endScreen('🌅 Vardiya başarısız',
+        'Sabah 06:00. Müdürün ofise geldiğinde gece raporunu bulamadı. ' +
+        (N.defeated ? 'Kameralar sakin ama kimse ne yaşadığına inanmadı.' : 'Bilgisayarın ekranında tek bir satır duruyordu: <i>"Yarın gece de gel."</i>'), false,
+        '<button class="primary" style="width:100%;margin-top:10px" data-act="night">🌙 Tekrar Dene</button>');
+    } else if (N.defeated) {
+      endScreen('🌅 Sabah oldu',
+        'Gece raporunu gönderdin ve Nöbetçi\'yi sistemden sildin. Güneş doğarken kameralarda yalnızca boş koridorlar var.<br><br>' +
+        'Masaüstünde Selim\'den gelen son bir not: <i>"Başardın. Ben başaramamıştım. Teşekkürler."</i>', true,
+        '<button style="width:100%;margin-top:10px" data-act="night">🌙 Yeniden Oyna</button>');
+    } else {
+      endScreen('🌅 Sabah oldu... sayılır',
+        'Raporu gönderdin ve vardiyayı tamamladın. Bilgisayarı kapatırken ekranın köşesinde küçük bir pencere beliriyor:<br><br>' +
+        '<i>"Yarın gece görüşürüz."</i><br><br><span class="muted small-t">İyi son için Nöbetçi\'nin 3 kopyasını sil ve sürecini sonlandır.</span>', true,
+        '<button class="primary" style="width:100%;margin-top:10px" data-act="night">🌙 Tekrar Dene</button>');
+    }
+  }
+
   function deliverMail() {
     for (const m of MAILS) {
-      if (S.mails.some((x) => x.id === m.id) || !m.when(S)) continue;
+      if ((m.mode || 'story') !== S.mode || S.mails.some((x) => x.id === m.id) || !m.when(S)) continue;
       S.mails.unshift({ id: m.id, read: false });
       toast(`📧 Yeni posta: ${m.from} — ${m.subject}`);
       Snd.beep(660, 0.08);
@@ -835,7 +1108,7 @@
     if (S.time % 60 === 0 && S.scans < 5) { S.scans++; toast('🛡️ +1 tarama hakkı', 'ok'); }
     if (S.time < S.nextAttack) return;
     // İlk dalgalarda truva atı yok; aynı türden iki tehdit aynı anda çalışmaz
-    const free = Object.keys(MAL).filter((k) => !hasMal(k) && !(k === 'trojan' && S.wave <= 2));
+    const free = Object.keys(SURV_FILES).filter((k) => !hasMal(k) && !(k === 'trojan' && S.wave <= 2));
     if (free.length) {
       const kind = pick(free);
       const name = pick(SURV_FILES[kind]);
@@ -928,6 +1201,7 @@
     const persistent = S.procs.filter((p) => p.mal && p.mal !== 'trojan');
     S.procs = BASE_PROCS.map((p) => ({ ...p, pid: nextPid() })).concat(persistent);
     S.temp = 42; S.hot = 0; S.cpu = 10;
+    if (S.night) { S.night.pos = 0; S.night.moveAt = S.time + moveDelay() + 10; }
     $('#popups').innerHTML = '';
     $('#ghost').classList.remove('on');
     $('#wiper').classList.add('hidden');
@@ -968,6 +1242,14 @@
   }
 
   function gameOver() {
+    if (S.mode === 'night') {
+      wipeSave('night');
+      endScreen('💀 Işıklar bir daha yanmadı',
+        'Sistem üçüncü kez çöktüğünde bina tamamen karardı. Sabah gelenler bilgisayarı açık, ekranı boş buldu. ' +
+        'Kamera kayıtlarında ise yalnızca senin odan vardı.', false,
+        '<button class="primary" style="width:100%;margin-top:10px" data-act="night">🌙 Tekrar Dene</button>');
+      return;
+    }
     if (S.mode === 'survival') {
       const best = getBest();
       const rekor = S.time > best;
@@ -1078,11 +1360,28 @@
         const found = S.procs.filter((p) => p.mal).map((p) => ({ name: p.name + ' (bellek)', label: MAL[p.mal].label }))
           .concat(S.files.filter((f) => f.payload in MAL).map((f) => ({ name: f.name, label: MAL[f.payload].label })));
         UI.scan = { done: true, found };
+        if (S.night && !S.night.scanned) { S.night.scanned = true; toast('📋 Görev tamamlandı: Kalkan taraması', 'ok'); }
         save();
       }
       if (UI.app === 'av') renderApp();
     }, 450);
     renderApp();
+  }
+
+  function renderCams() {
+    const N = S.night;
+    const active = hasMal('nobetci');
+    const status = N.defeated ? '✅ Tüm kameralar sakin.'
+      : active ? `⚠️ Hareket: <b>${ROOMS[N.pos]}</b> · sonraki hareket ~${Math.max(0, N.moveAt - S.time)} sn`
+      : N.started ? `📡 Sinyal yok${N.respawnAt ? ` · ${Math.max(0, N.respawnAt - S.time)} sn` : ''}` : 'Kayıt normal.';
+    return `<div class="pad">
+      <div class="card small-t">${status}</div>
+      <div class="cams">${ROOMS.map((r, i) => `<div class="cam-feed ${i === 3 ? 'mine' : ''} ${active && N.pos === i ? 'alert' : ''}">
+        <div class="cam-view">${active && N.pos === i ? '<span class="shadow">👤</span>' : ''}</div>
+        <div class="cam-label">CAM ${i + 1} · ${r}</div>
+        <div class="cam-rec">● ${clockText()}</div></div>`).join('')}</div>
+      <p class="muted small-t">İpucu: nobetci.exe sürecini sonlandırmak onu Lobi'ye geri gönderir. Kalıcı çözüm için sistemdeki kopyalarını bul ve sil.</p>
+    </div>`;
   }
 
   function renderMail() {
@@ -1102,6 +1401,7 @@
         <div class="card viewer" style="font-family:inherit">${esc(m.body)}</div>
         ${m.attach ? `<div class="card"><b>📎 Ek</b>${dlRow(m.attach).replace('data-act="dl"', 'data-act="mailDl"')}</div>` : ''}
         ${m.link ? `<div class="card"><b>🔗 Bağlantı</b><br><button class="link" data-act="go" data-arg="${m.link}">https://${esc(m.link)}/</button></div>` : ''}
+        ${m.reply ? (st.replied ? '<div class="card small-t">↩️ Yanıtlandı.</div>' : '<button class="primary" style="width:100%;margin-bottom:10px" data-act="mailReply">↩️ Yanıtla: "Tamam, ilgileniyorum."</button>') : ''}
         <button class="danger" style="width:100%" data-act="mailReport">🎣 Oltalama olarak bildir</button>
       </div>`;
     }
@@ -1114,6 +1414,21 @@
   }
 
   function renderNotes() {
+    if (S.mode === 'night') {
+      const N = S.night;
+      const tasks = [
+        [N.replied, 'Müdürün postasını yanıtla'],
+        [N.backup >= 100, `Sunucu yedeğini al (terminal: yedekle)${N.backup >= 0 && N.backup < 100 ? ` · %${Math.round(N.backup)}` : ''}`],
+        [N.scanned, 'Kalkan ile tam tarama yap'],
+        [N.report, '05:00\'ten sonra gece raporunu gönder (terminal: rapor)'],
+      ];
+      return `<div class="pad"><div class="card"><b>📋 Vardiya Defteri · ${clockText()}</b>
+        ${tasks.map(([d, t]) => `<div class="obj ${d ? 'done' : ''}"><span>${d ? '☑' : '☐'}</span><span>${t}</span></div>`).join('')}
+        ${N.started ? `<p class="small-t" style="margin-top:12px">📹 Nöbetçi: <b>${N.defeated ? 'silindi' : hasMal('nobetci') ? ROOMS[N.pos] : 'sinyal yok'}</b>${N.defeated ? '' : ` · Sistemdeki kopya: <b>${S.night.scanned ? nightCopies() : '?'}</b>`}</p>` : ''}
+        </div>
+        <div class="card"><b>✏️ Kişisel notlar</b>
+        <textarea id="notesArea" class="field" style="margin-top:8px">${esc(S.notes)}</textarea></div></div>`;
+    }
     if (S.mode === 'survival') {
       return `<div class="pad"><div class="card"><b>⏱️ Hayatta Kalma</b>
         <p class="small-t">Süre: <b>${fmtTime(S.time)}</b> · Dalga: <b>${S.wave}</b> · Rekor: <b>${fmtTime(getBest())}</b></p>
@@ -1213,7 +1528,7 @@
     const findFile = (n) => S.files.find((f) => !f.trash && (f.name.toLowerCase() === n.toLowerCase() || fileName(f).toLowerCase() === n.toLowerCase()));
     switch (cmd.toLowerCase()) {
       case 'yardim': case 'help':
-        tprint('ls               dosyaları listele\ncat <dosya>      metin dosyasını oku\nps               süreçleri listele\nkill <pid>       süreci sonlandır\nrm <dosya>       dosyayı çöpe at\ntara             Kalkan taraması başlat\nkurtar           şifreli dosyaları kurtar\ncoz <anahtar>    ARES.kilit şifresini çöz\nsistem           donanım durumu\ntemizle          ekranı temizle');
+        tprint('ls               dosyaları listele\ncat <dosya>      metin dosyasını oku\nps               süreçleri listele\nkill <pid>       süreci sonlandır\nrm <dosya>       dosyayı çöpe at\ntara             Kalkan taraması başlat\nyedekle          sunucu yedeği al (gece)\nrapor            gece raporunu gönder (gece)\nkurtar           şifreli dosyaları kurtar\ncoz <anahtar>    ARES.kilit şifresini çöz\nsistem           donanım durumu\ntemizle          ekranı temizle');
         break;
       case 'ls':
         for (const d of ['masaustu', 'belgeler', 'indirilenler']) {
@@ -1246,13 +1561,37 @@
         const f = findFile(arg);
         if (!f) tprint('rm: dosya bulunamadı: ' + arg, 'err');
         else if (f.protect) tprint('rm: dosya korumalı', 'err');
-        else { f.trash = true; tprint('çöpe taşındı: ' + f.name); renderHome(); save(); }
+        else { f.trash = true; tprint('çöpe taşındı: ' + f.name); if (f.payload === 'nobetci') nightCopyRemoved(); renderHome(); save(); }
         break;
       }
       case 'tara':
         if (S.scans <= 0) tprint('tara: tarama hakkın kalmadı (kalkan.org)', 'err');
         else { tprint('Kalkan taraması başlatıldı → Kalkan AV uygulamasında sonuçları gör.'); startScan(); }
         break;
+      case 'yedekle': {
+        const N = S.night;
+        if (!N) tprint('yedekle: bu komut yalnızca gece vardiyasında kullanılır', 'err');
+        else if (N.backup >= 100) tprint('Yedek zaten alındı.');
+        else if (N.backup >= 0) tprint(`Yedekleme sürüyor: %${Math.round(N.backup)}${hasMal('nobetci') ? ' (duraklatıldı: disk kilitli)' : ''}`);
+        else { N.backup = 0; tprint('Sunucu yedeği başlatıldı. Yaklaşık 40 sn sürer.'); save(); }
+        break;
+      }
+      case 'rapor': {
+        const N = S.night;
+        if (!N) { tprint('rapor: bu komut yalnızca gece vardiyasında kullanılır', 'err'); break; }
+        if (N.report) { tprint('Rapor zaten gönderildi.'); break; }
+        if (nightHour() < 5) { tprint(`rapor: gece raporu 05:00'ten sonra gönderilebilir (saat ${clockText()})`, 'err'); break; }
+        const missing = [];
+        if (!N.replied) missing.push('müdürün postasını yanıtla');
+        if (N.backup < 100) missing.push('yedekle');
+        if (!N.scanned) missing.push('Kalkan taraması');
+        if (missing.length) { tprint('rapor: eksik görevler: ' + missing.join(', '), 'err'); break; }
+        N.report = true;
+        tprint('Gece raporu gönderildi → kemal.arslan@meridyen.com.tr');
+        toast('📋 Gece raporu gönderildi', 'ok');
+        save();
+        break;
+      }
       case 'kurtar': {
         const n = restoreLocked();
         if (n < 0) tprint('kurtar: crypt0r.exe hâlâ çalışıyor, anahtar okunamıyor', 'err');
@@ -1302,7 +1641,7 @@
   // Eylemler
   // ---------------------------------------------------------------------------
   const ACT = {
-    newgame: () => { wipeSave(); startGame(newState('story'), true); },
+    newgame: () => { wipeSave('story'); startGame(newState('story'), true); },
     continue: () => { const d = load(); if (d) startGame(d, false); },
     open: (id) => openApp(id),
     close: () => {
@@ -1315,7 +1654,9 @@
     trashFile: (id) => {
       const f = fileById(id);
       if (f.protect) { toast('Bu dosya korumalı, silinemez.'); return; }
-      f.trash = true; renderApp(); renderHome(); save();
+      f.trash = true;
+      if (f.payload === 'nobetci') nightCopyRemoved();
+      renderApp(); renderHome(); save();
     },
     restore: (id) => {
       const f = fileById(id);
@@ -1366,6 +1707,15 @@
     termQuick: (c) => runCmd(c),
     toggleSound: () => { S.sound = !S.sound; Snd.init(); Snd.fan(S.cpu); renderApp(); save(); },
     survival: () => { closeModal(); startGame(newState('survival'), true); },
+    night: () => { closeModal(); wipeSave('night'); startGame(newState('night'), true); },
+    continueNight: () => { const d = load('night'); if (d) startGame(d, false); },
+    mailReply: () => {
+      const st = S.mails.find((x) => x.id === UI.mail);
+      if (!st) return;
+      st.replied = true;
+      if (UI.mail === 'mudur' && S.night) { S.night.replied = true; toast('📋 Görev tamamlandı: posta yanıtlandı', 'ok'); }
+      renderApp(); save();
+    },
     mailOpen: (id) => { UI.mail = id; renderApp(); renderHome(); $('#winBody').scrollTop = 0; },
     mailBack: () => { UI.mail = null; renderApp(); },
     mailDl: (key) => {
@@ -1379,6 +1729,8 @@
         S.scans++; S.stats.phish++;
         toast('✅ Doğru tespit! Oltalama bildirildi (+1 tarama hakkı)', 'ok');
         UI.mail = null;
+      } else if (m.kind === 'odd') {
+        toast('Kalkan: Bu bir oltalama postası değil... ama ne olduğu da belli değil.', 'bad');
       } else {
         toast('Bu posta güvenilir bir kaynaktan geliyordu. Yanlış alarm.', 'bad');
       }
