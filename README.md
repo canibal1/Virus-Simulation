@@ -80,16 +80,28 @@ Oyun ardından `https://<kullanıcı-adı>.github.io/<depo-adı>/` adresinde aç
 
 Telefonda tarayıcı menüsünden **"Ana ekrana ekle"** seçilirse tam ekran, çevrimdışı çalışan bir uygulama (PWA) olarak yüklenir.
 
-### Uygulama mağazası için paketleme (isteğe bağlı)
+### 📦 Android APK
 
-[Capacitor](https://capacitorjs.com/) ile Android/iOS paketine dönüştürülebilir:
+`.github/workflows/apk.yml`, `main` dalına yapılan her push'ta `android/` klasöründeki projeyi derler.
+Ek kütüphane kullanmayan bu proje, oyunu tam ekran bir WebView içinde çalıştırır ve web dosyalarını derleme sırasında APK'ya kopyalar.
+Derlenen APK bir **GitHub Release** olarak yayınlanır:
+
+**İndir:** https://github.com/canibal1/Virus-Simulation/releases/latest/download/SanalOS.apk
+
+Telefonda bağlantıyı aç, dosyayı indir ve kur. Android "bilinmeyen kaynaklardan yükleme" izni isteyebilir.
+
+**İmza:** Varsayılan olarak her derleme geçici bir debug anahtarıyla imzalanır. Bu yüzden yeni bir sürümü kurmadan önce eskisini kaldırmak gerekebilir.
+Sürümlerin birbirinin üzerine kurulabilmesi için bir kez anahtar oluşturup GitHub'a ekle:
 
 ```bash
-npm init -y && npm i @capacitor/core @capacitor/cli @capacitor/android
-mkdir www && cp -r index.html style.css game.js manifest.json sw.js icons www/
-npx cap init "Sanal OS" com.ornek.sanalos --web-dir www
-npx cap add android && npx cap open android
+keytool -genkeypair -v -keystore sanalos.jks -alias sanalos -keyalg RSA -keysize 2048 -validity 10000
+base64 -w0 sanalos.jks   # çıktıyı KEYSTORE_BASE64 sırrına yapıştır
 ```
+
+**Settings → Secrets and variables → Actions** altına `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` (`sanalos`) ve `KEY_PASSWORD` sırlarını ekle.
+Anahtar dosyasını depoya koyma ve kaybetme: Play Store'a yüklemek için de bu anahtar gerekir.
+
+Yerelde derlemek için (Android SDK gerekir): `cd android && ./gradlew assembleRelease`
 
 ## Dosya yapısı
 
@@ -99,7 +111,8 @@ style.css      mobil arayüz
 game.js        oyun mantığı (uygulamalar, siteler, tehditler, döngü)
 manifest.json  PWA tanımı
 sw.js          çevrimdışı önbellek (önce ağ, ağ yoksa önbellek)
-.github/       GitHub Pages yayın iş akışı
+android/       Android WebView projesi (APK)
+.github/       GitHub Pages ve APK iş akışları
 icons/icon.svg uygulama ikonu
 ```
 
