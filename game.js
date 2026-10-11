@@ -43,6 +43,8 @@
     pdf:      { name: 'PDF_Donusturucu.exe', size: '6.0 MB', payload: 'spyware' },
     arsiv:    { name: 'deniz_arsiv.zip', size: '88 MB', payload: 'ransomware' },
     kirici:   { name: 'SifreKirici.exe', size: '9.4 MB', payload: 'spyware' },
+    lisans:   { name: 'Kalkan_Lisans_Yenile.exe', size: '1.8 MB', payload: 'trojan' },
+    aresanahtar: { name: 'ARES_anahtar.zip', size: '14 KB', payload: 'ransomware' },
     iso:      { name: 'ARES_tam_surum.iso', size: '4.1 GB', payload: 'ransomware' },
     kalkan:   { name: 'Kalkan_Guncelleme.exe', size: '38 MB', payload: 'shield' },
     tema:     { name: 'Retro_Tema.zip', size: '640 KB', payload: 'theme' },
@@ -72,6 +74,60 @@
   };
 
   // ---------------------------------------------------------------------------
+  // E-postalar (yalnızca hikâye modunda). kind: 'legit' | 'phish'
+  // ---------------------------------------------------------------------------
+  const MAILS = [
+    {
+      id: 'ece', when: (s) => s.time >= 4, kind: 'legit',
+      from: 'Ece Yılmaz', addr: 'ece@haber.net', subject: 'Deniz\'den haber var mı?',
+      body: 'Selam,\n\nDeniz üç gündür telefonlarıma çıkmıyor. Son konuştuğumuzda ARES diye bir projeden ve bir forumdan bahsetmişti.\n\nHaberi yayınladık, belki bir ipucu çıkar. Sana bir şey bıraktıysa lütfen dikkatli ol.\n\nEce\nHaber.net Editörü',
+      link: 'haber.net',
+    },
+    {
+      id: 'lisans', when: (s) => s.time >= 50, kind: 'phish',
+      from: 'Kalkan Destek', addr: 'destek@ka1kan-guvenlik.biz', subject: '⚠️ Lisansınızın süresi DOLDU!',
+      body: 'Sayın Müşterimiz,\n\nKalkan Antivirüs lisansınızın süresi DOLMUŞTUR!!! Cihazınız şu an KORUMASIZ.\n\nKorumanın devam etmesi için ekteki yenileme aracını 24 saat içinde çalıştırınız. Aksi halde tüm dosyalarınız risk altındadır.\n\nKalkan Destek Ekibi',
+      attach: 'lisans',
+    },
+    {
+      id: 'banka', when: (s) => s.time >= 110, kind: 'phish',
+      from: 'Chronos Bank', addr: 'guvenlik@chronosbank-dogrulama.xyz', subject: 'Hesabınız askıya alındı',
+      body: 'Değerli müşterimiz,\n\nHesabınızda olağan dışı hareketler tespit edildi ve hesabınız geçici olarak askıya alındı.\n\nHesabınızı yeniden açmak için aşağıdaki bağlantıdan cüzdanınızı doğrulayın.\n\nChronos Bank Güvenlik',
+      link: 'chronosbank-dogrulama.xyz',
+    },
+    {
+      id: 'bulten', when: (s) => s.time >= 170, kind: 'legit',
+      from: 'Kalkan Güvenlik', addr: 'bulten@kalkan.org', subject: 'Haftalık bülten: Oltalama postaları artışta',
+      body: 'Bu hafta sahte "lisans yenileme" ve "hesabınız askıya alındı" postalarında artış görüldü.\n\nNasıl anlarsın?\n• Gönderen adresine bak: ka1kan ≠ kalkan\n• Acele ettiren, tehdit eden dil\n• Beklenmedik ekler (.exe, .zip)\n\nŞüpheli postaları "Oltalama olarak bildir" düğmesiyle bildir.\n\nKalkan Güvenlik',
+      link: 'kalkan.org',
+    },
+    {
+      id: 'anon', when: (s) => s.flags.p1, kind: 'legit',
+      from: '(bilinmeyen)', addr: 'noreply@dugum7.kara', subject: 'Doğru yoldasın',
+      body: 'Kaynağa bakmayı akıl ettin.\nSıradaki kapı, onun en sevdiği şeyle açılır.\n\nGölge\'ye iyi bak.',
+    },
+    {
+      id: 'sahte', when: (s) => s.flags.dark, kind: 'phish',
+      from: 'Deniz K.', addr: 'deniz.k@yeraltinet-forum.co', subject: 'Gerçek anahtar ekte, hemen aç',
+      body: 'Benim, Deniz. Vaktim yok.\n\nParçalarla uğraşma, anahtarın tamamı ekte. Hemen aç, birazdan bu adresi kapatacaklar!!!\n\n— D.',
+      attach: 'aresanahtar',
+    },
+  ];
+  const mailDef = (id) => MAILS.find((m) => m.id === id);
+
+  // Hayatta kalma modunda ağdan sızan dosyalar
+  const SURV_FILES = {
+    adware: ['Bedava_Duvar_Kagidi.exe', 'Kupon_Yakalayici.exe'],
+    ransomware: ['Fatura_Ekim.pdf.zip', 'Kargo_Takip.zip'],
+    spyware: ['Pil_Tasarrufu.exe', 'Ucretsiz_WiFi.exe'],
+    trojan: ['Sistem_Yamasi.exe', 'Surucu_Guncelle.exe'],
+  };
+  const REKOR_KEY = 'sanal-os-rekor';
+  const fmtTime = (t) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+  function getBest() { try { return +localStorage.getItem(REKOR_KEY) || 0; } catch (e) { return 0; } }
+  function setBest(v) { try { localStorage.setItem(REKOR_KEY, String(v)); } catch (e) { /* yok say */ } }
+
+  // ---------------------------------------------------------------------------
   // Durum
   // ---------------------------------------------------------------------------
   let S = null;
@@ -86,14 +142,15 @@
     bsod: false,
     timer: null,
     touch: 0,
+    mail: null,
   };
 
-  function newState() {
+  function newState(mode = 'story') {
     const s = {
-      v: 1, time: 0, lives: 3, coins: 0.2, scans: 3, shield: false,
+      v: 1, mode, wave: 1, nextAttack: 20, mails: [], time: 0, lives: 3, coins: 0.2, scans: 3, shield: false,
       sound: true, theme: 'normal', homepage: 'chronos://ana', cpu: 10, ram: 0, temp: 40, hot: 0,
       flags: { forum: false, p1: false, dark: false, p2: false, p3: false, done: false },
-      stats: { infections: 0, bsod: 0, popups: 0, killed: 0, cured: 0 },
+      stats: { infections: 0, bsod: 0, popups: 0, killed: 0, cured: 0, phish: 0 },
       files: [], procs: [], respawns: [], ransom: null, notes: '', nextId: 1, nextPid: 1200,
     };
     S = s;
@@ -107,6 +164,7 @@
     addFile({ name: 'oz_gecmis.pdf', dir: 'belgeler', kind: 'doc', size: '240 KB' });
     addFile({ name: 'silinen_mesaj.txt', dir: 'belgeler', kind: 'txt', size: '1 KB', trash: true, protect: true, flag: 'p3',
       text: 'Kimden: Deniz K.\nKonu: (silindi)\n\nBunu sana bırakıyorum, çöpe atıp izini kaybettirdim.\n\n>> PARÇA 3:  77\n\nAnahtarı birleştir ve ARES.kilit dosyasını aç.\nKimseye fidye ödeme, kimseye güvenme.' });
+    if (mode === 'survival') s.files = s.files.filter((f) => f.kind !== 'ares' && !f.flag);
     s.procs = BASE_PROCS.map((p) => ({ ...p, pid: nextPid() }));
     return s;
   }
@@ -115,13 +173,15 @@
   function addFile(f) { const file = { id: S.nextId++, locked: false, trash: false, ...f }; S.files.push(file); return file; }
   function fileById(id) { return S.files.find((f) => f.id === +id); }
 
-  function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* depolama yoksa sessiz geç */ } }
+  function save() { if (!S || S.mode === 'survival') return; try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { /* depolama yoksa sessiz geç */ } }
   function load() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return null;
       const d = JSON.parse(raw);
-      return d && d.v === 1 && !d.flags.done && d.lives > 0 ? d : null;
+      if (!d || d.v !== 1 || d.flags.done || d.lives <= 0) return null;
+      d.mode = 'story'; d.mails = d.mails || []; d.stats.phish = d.stats.phish || 0;
+      return d;
     } catch (e) { return null; }
   }
   function wipeSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* yok say */ } }
@@ -206,7 +266,8 @@
     const menu = $('#bootMenu');
     menu.innerHTML =
       (saved ? '<button class="primary" data-act="continue">Devam Et</button>' : '') +
-      `<button class="${saved ? '' : 'primary'}" data-act="newgame">Yeni Oyun</button>` +
+      `<button class="${saved ? '' : 'primary'}" data-act="newgame">Yeni Oyun (Hikâye)</button>` +
+      `<button data-act="survival">⏱️ Hayatta Kalma Modu${getBest() ? ` · Rekor ${fmtTime(getBest())}` : ''}</button>` +
       '<p class="muted small-t" style="text-align:center">Tüm tehditler kurgusaldır ve yalnızca oyunun içinde çalışır.</p>';
     menu.classList.remove('hidden');
     $('#boot').onclick = null;
@@ -216,13 +277,19 @@
     S = state;
     Snd.init();
     show('os');
-    UI.app = null; UI.term = []; UI.scan = null; UI.bsod = false;
+    UI.app = null; UI.term = []; UI.scan = null; UI.bsod = false; UI.mail = null;
     UI.br = { url: S.homepage, hist: [], src: false, query: '' };
     closeApp();
     renderStatus();
     clearInterval(UI.timer);
     UI.timer = setInterval(tick, 1000);
-    if (fresh) {
+    if (fresh && S.mode === 'survival') {
+      modal(`<h3>⏱️ Hayatta Kalma</h3>
+        <p>Sistem sürekli saldırı altında. Tehditler <b>dalgalar halinde</b> ağdan sızacak ve her dalga bir öncekinden daha erken gelecek.</p>
+        <p>Görev yöneticisi, terminal ve Kalkan ile sistemi ayakta tut. Her dakika <b>+1 tarama hakkı</b> kazanırsın (en fazla 5).</p>
+        <p class="muted small-t">3 çökme hakkın var. Rekorun: <b>${getBest() ? fmtTime(getBest()) : 'yok'}</b></p>`,
+        [['Başla', 'primary', 'modalClose']]);
+    } else if (fresh) {
       modal(`<h3>📂 Görev: ARES</h3>
         <p>Meslektaşın <b>Deniz K.</b> üç gündür kayıp. Masaüstüne <b>ARES.kilit</b> adlı şifreli bir dosya bırakmış.</p>
         <p>Anahtar üç parçaya bölünmüş. Parçaları bul, dosyayı aç.</p>
@@ -245,6 +312,7 @@
     terminal: { name: 'Terminal',    icon: '⌨️', title: 'Terminal' },
     taskmgr:  { name: 'Görev Yön.',  icon: '📊', title: 'Görev Yöneticisi' },
     av:       { name: 'Kalkan AV',   icon: '🛡️', title: 'Kalkan Antivirüs' },
+    mail:     { name: 'Posta',       icon: '✉️', title: 'Posta' },
     notes:    { name: 'Notlar',      icon: '📝', title: 'Notlar' },
     trash:    { name: 'Çöp Kutusu',  icon: '🗑️', title: 'Çöp Kutusu' },
     settings: { name: 'Ayarlar',     icon: '⚙️', title: 'Ayarlar' },
@@ -269,12 +337,18 @@
     const found = ['p1', 'p2', 'p3'].filter((k) => S.flags[k]).length;
     const trashN = S.files.filter((f) => f.trash).length;
     const desk = S.files.filter((f) => f.dir === 'masaustu' && !f.trash);
+    const unread = S.mails.filter((m) => !m.read).length;
+    const badges = { trash: trashN, mail: unread };
+    const widget = S.mode === 'survival'
+      ? `⏱️ <b id="survTime">${fmtTime(S.time)}</b> &nbsp;·&nbsp; 🌊 Dalga <b>${S.wave}</b>
+        &nbsp;·&nbsp; 🛡️ ${S.scans} tarama<br><span class="muted small-t">Sonraki saldırı: <span id="survNext">${Math.max(0, S.nextAttack - S.time)}</span> sn · Rekor ${fmtTime(getBest())}</span>`
+      : `🔑 Anahtar parçaları: <b>${found}/3</b>
+        &nbsp;·&nbsp; 💰 ${S.coins.toFixed(2)} KRP &nbsp;·&nbsp; 🛡️ ${S.scans} tarama`;
     $('#home').innerHTML = `
-      <div class="home-widget">🔑 Anahtar parçaları: <b>${found}/3</b>
-        &nbsp;·&nbsp; 💰 ${S.coins.toFixed(2)} KRP &nbsp;·&nbsp; 🛡️ ${S.scans} tarama</div>
+      <div class="home-widget">${widget}</div>
       <div class="grid">
-        ${Object.keys(APPS).filter((k) => !APPS[k].hidden && !DOCK.includes(k))
-          .map((k) => iconHtml(k, k === 'trash' && trashN ? trashN : 0)).join('')}
+        ${Object.keys(APPS).filter((k) => !APPS[k].hidden && !DOCK.includes(k) && !(k === 'mail' && S.mode === 'survival'))
+          .map((k) => iconHtml(k, badges[k] || 0)).join('')}
       </div>
       <div class="home-label">Masaüstü</div>
       <div class="grid">
@@ -324,7 +398,7 @@
     const id = UI.app;
     $('#winTitle').textContent = APPS[id].title;
     const body = $('#winBody');
-    const R = { browser: renderBrowser, files: renderFiles, terminal: renderTerminal, taskmgr: renderTaskmgr,
+    const R = { mail: renderMail, browser: renderBrowser, files: renderFiles, terminal: renderTerminal, taskmgr: renderTaskmgr,
       av: renderAV, notes: renderNotes, trash: renderTrash, settings: renderSettings, viewer: renderViewer, ransom: renderRansom };
     const keepScroll = id === 'taskmgr' || id === 'av' ? body.scrollTop : 0;
     body.innerHTML = R[id]();
@@ -446,6 +520,16 @@
         <p>Asıl arama motorunuza dönmek için tarayıcı menüsünden (⋮) ana sayfayı sıfırlayın.</p>
         <p>${go('chronos://ana', 'Chronos Arama')}</p></div>`,
     },
+
+    'chronosbank-dogrulama.xyz': {
+      title: 'Chronos Bank — Hesap Doğrulama', rep: 'riskli', keys: '', hiddenFromSearch: true,
+      desc: 'Hesap doğrulama.',
+      html: () => `<div style="text-align:center"><div style="font-size:42px">🏦</div><h1>Chronos Bank</h1></div>
+        <div class="card"><b>Hesabınız askıya alındı</b>
+          <p class="small-t">Hesabınızı yeniden etkinleştirmek için cüzdanınızı bağlayarak kimliğinizi doğrulayın. Bu işlem 10 dakika içinde yapılmazsa hesabınız kapatılacaktır.</p>
+          <button class="primary" style="width:100%" data-act="phishBank">Cüzdanı Bağla ve Doğrula</button></div>
+        <p class="muted small-t">© Chronos Bank. Tüm hakları saklıdır.</p>`,
+    },
   };
 
   function siteSource(url, site) {
@@ -486,11 +570,12 @@
   // ---------------------------------------------------------------------------
   // İndirme
   // ---------------------------------------------------------------------------
-  function requestDownload(key) {
+  function requestDownload(key, from) {
     const d = DL[key];
     const site = SITES[UI.br.url] || {};
     if (S.files.some((f) => f.dl === key && !f.trash)) { toast('Bu dosya zaten İndirilenler klasöründe.'); return; }
-    const rep = site.rep || 'orta';
+    const rep = from ? from.rep : site.rep || 'orta';
+    const srcLabel = from ? from.label : UI.br.url;
     let verdict;
     if (S.shield) {
       verdict = d.payload in MAL
@@ -498,9 +583,9 @@
         : '<span class="tag ok">TEMİZ</span> Bilinen tehdit yok.';
     } else {
       const cls = rep === 'guvenli' ? 'ok' : rep === 'orta' ? 'warn' : 'bad';
-      verdict = `<span class="tag ${cls}">Site itibarı: ${REP_LABEL[rep]}</span><br><span class="muted small-t">Dosya içeriği analiz edilemedi. Daha iyi analiz için Kalkan güncellemesi gerekir.</span>`;
+      verdict = `<span class="tag ${cls}">${from ? 'Gönderen itibarı' : 'Site itibarı'}: ${REP_LABEL[rep]}</span><br><span class="muted small-t">Dosya içeriği analiz edilemedi. Daha iyi analiz için Kalkan güncellemesi gerekir.</span>`;
     }
-    modal(`<h3>⬇️ İndirme</h3><p><b>${esc(d.name)}</b> · ${d.size}<br><span class="muted small-t">Kaynak: ${esc(UI.br.url)}</span></p>
+    modal(`<h3>⬇️ İndirme</h3><p><b>${esc(d.name)}</b> · ${d.size}<br><span class="muted small-t">Kaynak: ${esc(srcLabel)}</span></p>
       <div class="card">🛡️ <b>Kalkan risk analizi</b><br>${verdict}</div>`,
       [['Vazgeç', '', 'modalClose'], ['İndir', 'primary', 'dlConfirm', key]]);
   }
@@ -608,9 +693,9 @@
       if (!silent) { vibrate([200, 100, 200]); Snd.beep(120, 0.4); }
       openApp('ransom');
     } else if (kind === 'spyware') {
-      if (!silent) toast('✅ Kurulum başarıyla tamamlandı!', 'ok');
+      if (!silent && S.mode === 'story') toast('✅ Kurulum başarıyla tamamlandı!', 'ok');
     } else if (kind === 'trojan') {
-      if (!silent) toast('❌ Kurulum başarısız oldu (hata 0x0000F4).', 'bad');
+      if (!silent && S.mode === 'story') toast('❌ Kurulum başarısız oldu (hata 0x0000F4).', 'bad');
     }
     renderHome();
   }
@@ -704,6 +789,8 @@
       if (p.mal === 'trojan') tickTrojan(p);
     }
 
+    if (S.mode === 'survival') tickSurvival(); else deliverMail();
+
     // Kalıcı zararlıların yeniden başlaması
     S.respawns = S.respawns.filter((r) => {
       if (S.time < r.at) return true;
@@ -726,7 +813,40 @@
     renderStatus();
     // Kullanıcı dokunurken yeniden çizme (dokunuş kaçmasın)
     if ((UI.app === 'taskmgr' || UI.app === 'ransom') && Date.now() - UI.touch > 900) renderApp();
+    if (S.mode === 'survival' && !UI.app) {
+      const t = $('#survTime'); const n = $('#survNext');
+      if (t) t.textContent = fmtTime(S.time);
+      if (n) n.textContent = Math.max(0, S.nextAttack - S.time);
+    }
     if (S.time % 5 === 0) save();
+  }
+
+  function deliverMail() {
+    for (const m of MAILS) {
+      if (S.mails.some((x) => x.id === m.id) || !m.when(S)) continue;
+      S.mails.unshift({ id: m.id, read: false });
+      toast(`📧 Yeni posta: ${m.from} — ${m.subject}`);
+      Snd.beep(660, 0.08);
+      if (!UI.app) renderHome(); else if (UI.app === 'mail' && !UI.mail) renderApp();
+    }
+  }
+
+  function tickSurvival() {
+    if (S.time % 60 === 0 && S.scans < 5) { S.scans++; toast('🛡️ +1 tarama hakkı', 'ok'); }
+    if (S.time < S.nextAttack) return;
+    // İlk dalgalarda truva atı yok; aynı türden iki tehdit aynı anda çalışmaz
+    const free = Object.keys(MAL).filter((k) => !hasMal(k) && !(k === 'trojan' && S.wave <= 2));
+    if (free.length) {
+      const kind = pick(free);
+      const name = pick(SURV_FILES[kind]);
+      const f = addFile({ name, dir: 'indirilenler', kind: /\.zip$/.test(name) ? 'zip' : 'exe', size: '?', payload: kind });
+      toast(`🌊 Dalga ${S.wave}: ağdan bir tehdit sızdı!`, 'bad');
+      vibrate(150);
+      infect(kind, f.id);
+    }
+    S.wave++;
+    S.nextAttack = S.time + Math.max(12, 38 - S.wave * 2);
+    if (!UI.app) renderHome();
   }
 
   function tickRansom(p) {
@@ -821,7 +941,7 @@
     save();
   }
 
-  function endScreen(title, text, good) {
+  function endScreen(title, text, good, extra = '') {
     clearInterval(UI.timer);
     Snd.fan(0);
     const m = Math.floor(S.time / 60); const s = S.time % 60;
@@ -833,7 +953,8 @@
         <div class="stat"><b>${S.stats.popups}</b><span class="muted small-t">pop-up reklam</span></div>
       </div>
       ${good ? `<p class="muted small-t">Derece: <b>${S.stats.infections === 0 ? 'Hayalet 👻 (hiç enfekte olmadın!)' : S.stats.bsod === 0 ? 'Sistem Yöneticisi 🛡️' : 'Hayatta Kalan 🔧'}</b></p>` : ''}
-      <button class="primary" style="width:100%;margin-top:10px" data-act="newgame">Yeni Oyun</button>`;
+      ${extra}
+      <button class="${extra ? '' : 'primary'}" style="width:100%;margin-top:10px" data-act="newgame">Yeni Oyun (Hikâye)</button>`;
     show('ending');
   }
 
@@ -847,6 +968,16 @@
   }
 
   function gameOver() {
+    if (S.mode === 'survival') {
+      const best = getBest();
+      const rekor = S.time > best;
+      if (rekor) setBest(S.time);
+      endScreen(rekor ? '🏆 Yeni rekor!' : '💀 Sistem düştü',
+        `Sistemi <b>${fmtTime(S.time)}</b> boyunca ayakta tuttun ve <b>${S.wave - 1}</b> dalga atlattın.<br>` +
+        (rekor ? (best ? `Önceki rekor: ${fmtTime(best)}` : 'İlk rekorun!') : `Rekor: ${fmtTime(best)}`), false,
+        '<button class="primary" style="width:100%;margin-top:10px" data-act="survival">⏱️ Tekrar Dene</button>');
+      return;
+    }
     wipeSave();
     endScreen('💀 Sistem kalıcı olarak çöktü',
       'Sanal OS bir daha açılmadı. ARES dosyası ve Deniz\'in izleri karanlıkta kaldı. ' +
@@ -954,7 +1085,42 @@
     renderApp();
   }
 
+  function renderMail() {
+    if (UI.mail) {
+      const m = mailDef(UI.mail);
+      const st = S.mails.find((x) => x.id === UI.mail);
+      if (!m || !st) { UI.mail = null; return renderMail(); }
+      st.read = true;
+      $('#winTitle').textContent = m.subject;
+      return `<div class="pad">
+        <button class="small" data-act="mailBack">← Gelen kutusu</button>
+        <div class="card" style="margin-top:12px">
+          <div><b>${esc(m.from)}</b></div>
+          <div class="muted small-t">&lt;${esc(m.addr)}&gt;</div>
+          <h3 style="margin:12px 0 0;font-size:16px">${esc(m.subject)}</h3>
+        </div>
+        <div class="card viewer" style="font-family:inherit">${esc(m.body)}</div>
+        ${m.attach ? `<div class="card"><b>📎 Ek</b>${dlRow(m.attach).replace('data-act="dl"', 'data-act="mailDl"')}</div>` : ''}
+        ${m.link ? `<div class="card"><b>🔗 Bağlantı</b><br><button class="link" data-act="go" data-arg="${m.link}">https://${esc(m.link)}/</button></div>` : ''}
+        <button class="danger" style="width:100%" data-act="mailReport">🎣 Oltalama olarak bildir</button>
+      </div>`;
+    }
+    if (!S.mails.length) return '<p class="pad muted">Gelen kutusu boş.</p>';
+    return `${S.mails.map((st) => { const m = mailDef(st.id); return `<button class="list-item" style="width:100%;border-radius:0;border-width:0 0 1px;background:none;text-align:left" data-act="mailOpen" data-arg="${m.id}">
+        <span class="fico">${st.read ? '📭' : '📬'}</span>
+        <div class="grow ell"><div class="ell" style="font-weight:${st.read ? 400 : 700}">${esc(m.from)}</div>
+        <div class="ell muted small-t">${esc(m.subject)}</div></div></button>`; }).join('')}
+      <p class="pad muted small-t">Şüpheli postaları açıp "Oltalama olarak bildir" ile bildirirsen Kalkan sana +1 tarama hakkı verir.</p>`;
+  }
+
   function renderNotes() {
+    if (S.mode === 'survival') {
+      return `<div class="pad"><div class="card"><b>⏱️ Hayatta Kalma</b>
+        <p class="small-t">Süre: <b>${fmtTime(S.time)}</b> · Dalga: <b>${S.wave}</b> · Rekor: <b>${fmtTime(getBest())}</b></p>
+        <p class="small-t muted">• Süreç adlarını dikkatle oku (svch0st ≠ svchost)<br>• Kalıcı zararlıların kaynak dosyasını sil<br>• Fidye yazılımında önce süreci durdur, sonra <b>kurtar</b><br>• Tarama haklarını biriktir: her dakika +1</p></div>
+        <div class="card"><b>✏️ Kişisel notlar</b>
+        <textarea id="notesArea" class="field" style="margin-top:8px">${esc(S.notes)}</textarea></div></div>`;
+    }
     const F = S.flags;
     const objs = [
       [F.forum, 'Deniz\'in izini forumda bul (haber.net\'ten başla)'],
@@ -1136,10 +1302,14 @@
   // Eylemler
   // ---------------------------------------------------------------------------
   const ACT = {
-    newgame: () => { wipeSave(); startGame(newState(), true); },
+    newgame: () => { wipeSave(); startGame(newState('story'), true); },
     continue: () => { const d = load(); if (d) startGame(d, false); },
     open: (id) => openApp(id),
-    close: () => { if (UI.app === 'browser' && UI.br.src) { UI.br.src = false; renderApp(); } else closeApp(); },
+    close: () => {
+      if (UI.app === 'browser' && UI.br.src) { UI.br.src = false; renderApp(); }
+      else if (UI.app === 'mail' && UI.mail) { UI.mail = null; renderApp(); }
+      else closeApp();
+    },
     openFile: (id) => openFile(id),
     filesTab: (k) => { UI.filesTab = k; renderApp(); },
     trashFile: (id) => {
@@ -1195,6 +1365,34 @@
     popClick: (_, el) => { el.closest('.popup').remove(); ACT.go('superarama.biz'); },
     termQuick: (c) => runCmd(c),
     toggleSound: () => { S.sound = !S.sound; Snd.init(); Snd.fan(S.cpu); renderApp(); save(); },
+    survival: () => { closeModal(); startGame(newState('survival'), true); },
+    mailOpen: (id) => { UI.mail = id; renderApp(); renderHome(); $('#winBody').scrollTop = 0; },
+    mailBack: () => { UI.mail = null; renderApp(); },
+    mailDl: (key) => {
+      const m = mailDef(UI.mail);
+      requestDownload(key, { label: 'Posta: ' + m.addr, rep: m.kind === 'phish' ? 'orta' : 'guvenli' });
+    },
+    mailReport: () => {
+      const m = mailDef(UI.mail);
+      if (m.kind === 'phish') {
+        S.mails = S.mails.filter((x) => x.id !== m.id);
+        S.scans++; S.stats.phish++;
+        toast('✅ Doğru tespit! Oltalama bildirildi (+1 tarama hakkı)', 'ok');
+        UI.mail = null;
+      } else {
+        toast('Bu posta güvenilir bir kaynaktan geliyordu. Yanlış alarm.', 'bad');
+      }
+      renderApp(); renderHome(); save();
+    },
+    phishBank: () => {
+      const lost = S.coins;
+      S.coins = 0;
+      infect('spyware', null, false);
+      modal(`<h3>💸 Oltalama!</h3><p>Cüzdanından <b>${lost.toFixed(2)} KRP</b> çekildi ve sisteme bir casus yazılım yerleşti.</p>
+        <p class="muted small-t">Adres çubuğuna bak: <b>chronosbank-dogrulama.xyz</b>, bankanın gerçek adresi değil. Gerçek kurumlar postayla "cüzdanını bağla" demez.</p>`,
+        [['Anladım', 'primary', 'modalClose']]);
+      renderHome(); save();
+    },
     resetAsk: () => modal('<h3>Oyunu sıfırla?</h3><p>Tüm ilerleme silinecek.</p>', [['Vazgeç', '', 'modalClose'], ['Sıfırla', 'danger', 'newgame']]),
   };
 

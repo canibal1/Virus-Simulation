@@ -21,8 +21,23 @@ ve parçaları topla. Ama dikkat: her indirme bir kumar.
 | ⌨️ **Terminal** | `ls`, `cat`, `ps`, `kill`, `rm`, `tara`, `kurtar`, `coz`, `sistem` |
 | 📊 **Görev Yöneticisi** | CPU / RAM / sıcaklık ve süreçleri izleme, süreç sonlandırma |
 | 🛡️ **Kalkan AV** | Tarama (sınırlı hak), karantina, şifreli dosya kurtarma |
+| ✉️ **Posta** | Hikâyeyi ilerleten postalar ve kurgusal oltalama postaları. Doğru bildirim +1 tarama hakkı verir |
 | 📝 **Notlar** | Görev defteri, bulunan parçalar ve kişisel notlar |
 | 🗑️ **Çöp Kutusu** | Silinen dosyaları geri yükleme |
+
+## Oyun modları
+
+- **Hikâye:** ARES dosyasının anahtarını bul. İlerleme otomatik kaydedilir ve açılışta "Devam Et" ile sürdürülür.
+- **⏱️ Hayatta Kalma:** Tehditler dalgalar halinde ağdan sızar ve her dalga bir öncekinden daha erken gelir (38 sn'den 12 sn'ye kadar).
+  Her dakika +1 tarama hakkı kazanılır (en fazla 5). Skor, sistemin ayakta kaldığı süredir ve en iyi süre rekor olarak saklanır.
+
+## Oltalama (phishing) postaları
+
+| Posta | İpucu |
+|---|---|
+| "Lisansınızın süresi DOLDU!" | Gönderen `ka1kan-guvenlik.biz`, gerçek adres `kalkan.org`. Ekte `.exe` var |
+| "Hesabınız askıya alındı" | `chronosbank-dogrulama.xyz` alan adı, acele ettiren dil, "cüzdanını bağla" isteği |
+| "Gerçek anahtar ekte" | `yeraltinet-forum.co`, gerçek forum `yeraltinet.com` |
 
 ## Tehditler (kurgusal)
 
@@ -57,6 +72,12 @@ python3 -m http.server 8000
 # Telefondan aynı ağda: http://<bilgisayar-ip>:8000
 ```
 
+### GitHub Pages ile yayınlama
+
+`.github/workflows/pages.yml`, `main` dalına yapılan her push'ta oyunu yayınlar. Bir kereye mahsus
+**Settings → Pages → Build and deployment → Source: GitHub Actions** ayarını seçmek gerekir.
+Oyun ardından `https://<kullanıcı-adı>.github.io/<depo-adı>/` adresinde açılır.
+
 Telefonda tarayıcı menüsünden **"Ana ekrana ekle"** seçilirse tam ekran, çevrimdışı çalışan bir uygulama (PWA) olarak yüklenir.
 
 ### Uygulama mağazası için paketleme (isteğe bağlı)
@@ -77,7 +98,8 @@ index.html     ekran iskeleti
 style.css      mobil arayüz
 game.js        oyun mantığı (uygulamalar, siteler, tehditler, döngü)
 manifest.json  PWA tanımı
-sw.js          çevrimdışı önbellek
+sw.js          çevrimdışı önbellek (önce ağ, ağ yoksa önbellek)
+.github/       GitHub Pages yayın iş akışı
 icons/icon.svg uygulama ikonu
 ```
 

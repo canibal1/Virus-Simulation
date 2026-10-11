@@ -1,5 +1,6 @@
-// Çevrimdışı oynanabilmesi için temel dosyaları önbelleğe alır.
-const CACHE = 'sanal-os-v1';
+// Çevrimdışı oynanabilmesi için dosyaları önbelleğe alır.
+// Önce ağ denenir (güncellemeler hemen gelsin), ağ yoksa önbellekten sunulur.
+const CACHE = 'sanal-os-v2';
 const FILES = ['./', './index.html', './style.css', './game.js', './manifest.json', './icons/icon.svg'];
 
 self.addEventListener('install', (e) => {
@@ -12,6 +13,13 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request)));
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  e.respondWith(
+    fetch(e.request)
+      .then((res) => {
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+        return res;
+      })
+      .catch(() => caches.match(e.request, { ignoreSearch: true }))
+  );
 });
