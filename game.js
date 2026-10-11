@@ -678,7 +678,7 @@
   function dlRow(key, note = '') {
     const d = DL[key];
     return `<div class="dl-row"><span>${d.name.endsWith('.txt') ? '📄' : d.name.match(/\.(zip|iso)$/) ? '🗜️' : '⚙️'}</span>
-      <div class="grow"><div class="ell"><b>${esc(d.name)}</b></div><div class="muted small-t">${d.size}${note ? ' · ' + note : ''}</div></div>
+      <div class="grow"><div class="fname"><b>${esc(d.name)}</b></div><div class="muted small-t">${d.size}${note ? ' · ' + note : ''}</div></div>
       <button class="small primary" data-act="dl" data-arg="${key}">İndir</button></div>`;
   }
   const go = (url, label) => `<button class="link" data-act="go" data-arg="${url}">${label || url}</button>`;
@@ -1726,7 +1726,8 @@
     return `<div class="tabs">${tabs.map(([k, n]) => `<button class="${UI.filesTab === k ? 'on' : ''}" data-act="filesTab" data-arg="${k}">${n}</button>`).join('')}</div>
       ${list.length ? list.map((f) => `<div class="list-item">
         <span class="fico">${fileIcon(f)}</span>
-        <div class="grow ell"><div class="ell ${f.locked ? 'locked-name' : ''}">${esc(fileName(f))}</div><div class="muted small-t">${f.size || ''}</div></div>
+        <div class="grow"><div class="fname ${f.locked ? 'locked-name' : ''}">${esc(fileName(f))}</div><div class="muted small-t">${f.size || ''}</div></div>
+        ${modeHook('fileActions', f) || ''}
         <button class="small" data-act="openFile" data-arg="${f.id}">Aç</button>
         <button class="small" data-act="trashFile" data-arg="${f.id}" aria-label="Sil">🗑️</button>
       </div>`).join('') : '<p class="pad muted">Bu klasör boş.</p>'}`;
@@ -2663,6 +2664,123 @@
       S.office.cells[r][c] = 1000 + Math.floor(Math.random() * 9000);
       Snd.beep(1200, 0.02);
       renderApp();
+    },
+  });
+
+  // ===========================================================================
+  // 🐉 MOD AVCISI
+  // ===========================================================================
+  Object.assign(DL, {
+    yama_f1:   { name: 'EjderDiyari_TR_Yama_Kurulum.exe', size: '412 KB', payload: 'trojan' },
+    yama_ok:   { name: 'EjderDiyari_TR_Yama_v2.1.zip', size: '38 MB', payload: 'mod', mod: 'yama' },
+    yama_f2:   { name: 'TR_Yama_Hizli_Indir.exe', size: '1.2 MB', payload: 'adware' },
+    doku_ok:   { name: 'HD_Doku_Paketi_4K.zip', size: '1.4 GB', payload: 'mod', mod: 'doku' },
+    doku_f1:   { name: 'HD_Doku_Aktivator.exe', size: '600 KB', payload: 'spyware' },
+    doku_f2:   { name: 'HD_Doku_Paketi_4K.zip.exe', size: '2.1 MB', payload: 'ransomware' },
+    harita_f1: { name: 'BuzulVadisi_Harita.scr', size: '280 KB', payload: 'trojan' },
+    harita_f2: { name: 'BuzulVadisi_Bedava_Elmas.exe', size: '3 MB', payload: 'adware' },
+    harita_ok: { name: 'BuzulVadisi_v1.3.zip', size: '220 MB', payload: 'mod', mod: 'harita' },
+  });
+  const MODS = { yama: 'Türkçe Yama v2.1', doku: 'HD Doku Paketi 4K', harita: 'Buzul Vadisi haritası' };
+  const MOD_THREADS = [
+    { title: 'Ejder Diyarı %100 Türkçe Yama v2.1', links: [
+      ['yama_f1', 'yama_kral', false, '1 gün', ['harika çalışıyor!!!1', 'teşekkürler kardeş', 'süper']],
+      ['yama_ok', 'Çeviri Ekibi', true, '6 yıl', ['v2.0\'daki menü hatası düzelmiş, diyaloglar çok akıcı', 'Kalkan ile taradım, temiz. Emeğinize sağlık.']],
+      ['yama_f2', 'hizli_indir', false, '3 gün', ['indirme yöneticisi ile 10x hızlı indir!', 'link çalışıyor']],
+    ] },
+    { title: 'HD Doku Paketi 4K (tüm bölgeler)', links: [
+      ['doku_f1', 'aktivasyon_pro', false, '2 gün', ['Paketi açmak için aktivatör şart!!', 'aktivatör olmadan çalışmaz']],
+      ['doku_f2', 'DokuUstasi_', false, '5 gün', ['çalışıyo', 'çok iyi', '10/10']],
+      ['doku_ok', 'DokuUstası', true, '4 yıl', ['FPS biraz düşüyor ama orman bölgesi muhteşem olmuş', 'Orta seviye kartta 60 FPS gördüm, harika iş']],
+    ] },
+    { title: 'Yeni Harita: Buzul Vadisi', links: [
+      ['harita_ok', 'haritaci_mert', true, '3 yıl', ['v1.2\'deki köprü çökmesi düzelmiş', 'Gizli mağarayı buldum, 2 saat sürdü 😄']],
+      ['harita_f1', 'mert_haritaci', false, '1 gün', ['haritayı açmak için çift tıkla', 'tamamdır']],
+      ['harita_f2', 'elmas_bedava', false, '1 hafta', ['harita + 9999 elmas!!!', 'elmaslar geldi teşekkürler!!!']],
+    ] },
+  ];
+  const modSaves = () => S.files.filter((f) => f.kind === 'save' && !f.trash && !f.locked).length;
+
+  function modEnd(win) {
+    const M = S.mod; const saves = modSaves();
+    endScreen(win ? '🐉 Ejder Diyarı hazır!' : '🐉 Bilgisayar pes etti',
+      win ? `Üç modu da kurdun ve oyunu başlattın. Buzul Vadisi'nde Türkçe diyaloglar, 4K dokular...<br><br>Kurtarılan kayıt dosyası: <b>${saves}/3</b> ${saves === 3 ? '— Kusursuz modcu! 🏆' : saves ? '— Bazı ilerlemeler kayboldu. 😢' : '— Tüm kayıtlar gitti, en baştan... 😭'}`
+        : `Kurulan mod: ${Object.values(M.installed).filter(Boolean).length}/3 · Kalan kayıt: ${saves}/3`,
+      win, '<button class="primary" style="width:100%;margin-top:10px" data-act="startMode" data-arg="mod">🐉 Tekrar Oyna</button>');
+  }
+
+  MODES.mod = {
+    title: '🐉 Mod Avcısı',
+    setup(s) {
+      s.homepage = 'ejderforum.net';
+      s.scans = 3;
+      s.files = s.files.filter((f) => f.dir !== 'masaustu');
+      addFile({ name: 'EjderDiyari.exe', dir: 'masaustu', kind: 'exe', size: '24 GB', payload: 'game', protect: true });
+      for (const i of [1, 2, 3]) addFile({ name: `ejder_kayit_${i}.sav`, dir: 'masaustu', kind: 'save', size: `${180 + i * 40} KB` });
+      s.mod = { installed: { yama: false, doku: false, harita: false } };
+    },
+    intro: () => `<h3>🐉 Mod Avcısı</h3>
+      <p><b>Ejder Diyarı</b> için topluluğun hazırladığı üç ücretsiz mod var: <b>Türkçe Yama</b>, <b>HD Doku Paketi</b> ve <b>Buzul Vadisi</b> haritası.</p>
+      <p><b>ejderforum.net</b>'te her mod için üç bağlantı var ama yalnızca biri gerçek. Yükleyeni, yorumları, dosya adını ve boyutunu incele.</p>
+      <p class="muted small-t">Emin değilsen Dosyalar'da 🛡️ ile tarat (3 hak). Yanlış dosya masaüstündeki oyun kayıtlarına zarar verebilir.</p>`,
+    widget() {
+      const M = S.mod;
+      return `🐉 Modlar <b>${Object.values(M.installed).filter(Boolean).length}/3</b> &nbsp;·&nbsp; 💾 Kayıtlar <b>${modSaves()}/3</b> &nbsp;·&nbsp; 🛡️ ${S.scans} tarama`;
+    },
+    notes: () => `<div class="pad"><div class="card"><b>🐉 Modcu el kitabı</b>
+      <p class="small-t">• Doğrulanmış (✓) ve eski hesaplara güven<br>• "harika!!!1" gibi kısa yorumlar bot olabilir; ayrıntılı yorumlar iyi işarettir<br>• Mod dosyaları genelde .zip olur; <b>.exe, .scr, .zip.exe</b> şüphelidir<br>• 4K doku paketi 400 KB olamaz: boyuta bak<br>• "Aktivatör", "hızlı indirici", "bedava elmas" = tuzak</p>
+      ${Object.entries(MODS).map(([k, n]) => `<div class="obj ${S.mod.installed[k] ? 'done' : ''}"><span>${S.mod.installed[k] ? '☑' : '☐'}</span><span>${n}</span></div>`).join('')}</div></div>`,
+    tick() {
+      if (Object.values(S.mod.installed).every(Boolean) && !hasAnyMal()) { modEnd(true); return true; }
+      return false;
+    },
+    lose() { modEnd(false); },
+    openFile(f) {
+      if (f.payload === 'mod') {
+        if (S.mod.installed[f.mod]) { toast('Bu mod zaten kurulu.'); return true; }
+        S.mod.installed[f.mod] = true;
+        toast(`✅ Mod kuruldu: ${MODS[f.mod]}`, 'ok');
+        [523, 659, 784, 1046].forEach((fr, i) => setTimeout(() => Snd.beep(fr, 0.08), i * 100));
+        if (Object.values(S.mod.installed).every(Boolean) && hasAnyMal()) setTimeout(() => toast('Tüm modlar hazır! Oyunu başlatmadan önce sistemdeki tehditleri temizle.', 'bad'), 900);
+        renderHome();
+        return true;
+      }
+      if (f.payload === 'game') {
+        const M = S.mod;
+        modal(`<h3>🐉 Ejder Diyarı</h3>${Object.entries(MODS).map(([k, n]) => `<div>${M.installed[k] ? '✅' : '⬜'} ${n}</div>`).join('')}
+          <p class="small-t muted" style="margin-top:10px">Kayıtlar: ${modSaves()}/3</p>`, [['Kapat', 'primary', 'modalClose']]);
+        return true;
+      }
+      if (f.kind === 'save') { toast(`💾 ${f.name}: Seviye ${10 + f.id % 20}, Ejder Mağarası`); return true; }
+      return false;
+    },
+    fileActions: (f) => (f.dir === 'indirilenler' ? (f.scanned
+      ? `<span class="tag ${f.payload in MAL ? 'bad' : 'ok'}">${f.payload in MAL ? 'TEHDİT' : 'TEMİZ'}</span>`
+      : `<button class="small" data-act="modScan" data-arg="${f.id}" aria-label="Tara">🛡️</button>`) : ''),
+  };
+
+  Object.assign(SITES, {
+    'ejderforum.net': {
+      title: 'EjderForum — Mod Paylaşım', rep: 'orta', keys: '', hiddenFromSearch: true,
+      html: () => `<h1>🐉 EjderForum</h1><p class="muted small-t">Ejder Diyarı topluluk modları · Tüm modlar ücretsizdir</p>
+        ${MOD_THREADS.map((t) => `<div class="post"><b style="font-size:16px">${t.title}</b>
+          ${t.links.map(([key, who, verified, age, comments], i) => `<div class="card" style="margin:10px 0 0">
+            <div class="small-t"><b>Link ${i + 1}</b> · yükleyen <b>${esc(who)}</b> ${verified ? '<span class="tag ok">✓ doğrulanmış</span>' : ''} <span class="muted">· üye ${age}</span></div>
+            ${dlRow(key)}
+            <div class="small-t muted" style="margin-top:6px">${comments.map((c) => `💬 ${esc(c)}`).join('<br>')}</div>
+          </div>`).join('')}</div>`).join('')}`,
+    },
+  });
+
+  Object.assign(EXTRA_ACTS, {
+    modScan: (id) => {
+      const f = fileById(id);
+      if (!f) return;
+      if (S.scans <= 0) { toast('🛡️ Tarama hakkın kalmadı. Artık sezgilerine güvenmelisin.', 'bad'); return; }
+      S.scans--; f.scanned = true;
+      if (f.payload in MAL) toast(`🛡️ ${f.name}: TEHDİT (${MAL[f.payload].label})`, 'bad');
+      else toast(`🛡️ ${f.name}: temiz`, 'ok');
+      renderApp(); renderHome();
     },
   });
 

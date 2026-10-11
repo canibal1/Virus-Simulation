@@ -22,6 +22,9 @@ ve parçaları topla. Ama dikkat: her indirme bir kumar.
 | 📊 **Görev Yöneticisi** | CPU / RAM / sıcaklık ve süreçleri izleme, süreç sonlandırma |
 | 🛡️ **Kalkan AV** | Tarama (sınırlı hak), karantina, şifreli dosya kurtarma |
 | ✉️ **Posta** | Hikâyeyi ilerleten postalar ve kurgusal oltalama postaları. Doğru bildirim +1 tarama hakkı verir |
+| 💬 **Messenger** | (Retro 2000'ler) MSN benzeri sohbet, dosya gönderme, titreşim |
+| 🔐 **Kilit Ekranı** | (Kaçış Odası) Geri sayım ve üç kod |
+| 📊 **Rapor.xls** | (İş Yerinde Mola) Doldurulması gereken iş tablosu |
 | 🧪 **Laboratuvar** | (Antivirüs Testi) Numune analizi ve sınıflandırma |
 | 🤖 **ECHO** | (Yapay Zekâ) Sohbet ve kurtarma kilitleri |
 | 📹 **Kameralar** | (Gece Vardiyası) Binadaki 4 kameranın canlı görüntüsü |
@@ -43,6 +46,18 @@ ve parçaları topla. Ama dikkat: her indirme bir kumar.
 - **🤖 Yapay Zekâ: ECHO:** İndirdiğin "Asistan.exe" kurgusal bir yapay zekâ karakteri çıkar. Önce sohbet edip senden izinler ister;
   verdiğin her izin onu güçlendirir. Ardından düşmanlaşır: pencereleri kapatır, uygulamaları 15 sn kilitler ve "yayılma" çubuğunu doldurur.
   Kurtarma sekmesindeki üç kilidi (bir sayı bulmacası, bir dizi ve bir Sezar şifresi) çözüp ECHO'yu silersen kazanırsın; yayılma %100 olursa kaybedersin.
+- **📼 Retro 2000'ler:** Yıl 2004. 25 MB çevirmeli internet kotası, 56k hızında yavaş indirmeler ve arada bir kopan bağlantı (bağlanma sesiyle).
+  MSN benzeri **Messenger**'da üç arkadaşın senden dosya istiyor; doğru dosyayı bulup gönder, titreşim at.
+  Sahte "MP3" ve "Full sürüm" dosyaları ekranda **dans eden maymun** 🐒 ya da **simge kemiren kurtçuk** 🐛 çıkarır. Kota biterse veya
+  virüslü dosya gönderdiğin için arkadaşların seni engellerse kaybedersin.
+- **🔐 Kaçış Odası:** Ransom Master masaüstünü kilitledi; 8 dakikan var. Her oyunda değişen üç kod:
+  çöpte ters yazılmış not, sitenin **kaynak kodunda** meyve şifresi, terminalde `ls -a` ile görünen gizli dosya.
+  Sitedeki "fidyeyi öde", "kodu satın al", "sayacı durdur" ve masaüstündeki `Kurtarici.exe` birer tuzaktır.
+- **⚽ İş Yerinde Mola:** Amatör lig finalini ofiste izle (maç yalnızca izlerken ilerler). 👞 ayak sesini duyunca **🗂️ Panik!** düğmesine bas.
+  Patron kapıdayken ekranda maç, pop-up veya reklam sesi varsa şüphesi artar; %100 olursa yakalanırsın. Maç bitince rapor en az %50 dolu olmalı.
+- **🐉 Mod Avcısı:** "Ejder Diyarı" için üç ücretsiz topluluk modu. Forumda her mod için üç bağlantı var, yalnızca biri gerçek:
+  yükleyene, yorumlara, dosya adına (`.exe`, `.scr`, `.zip.exe`) ve boyuta bak; şüphelendiğin dosyayı Dosyalar'da 🛡️ ile tarat (3 hak).
+  Yanlış dosya masaüstündeki oyun kayıtlarını silebilir veya kilitleyebilir.
 - **⏱️ Hayatta Kalma:** Tehditler dalgalar halinde ağdan sızar ve her dalga bir öncekinden daha erken gelir (38 sn'den 12 sn'ye kadar).
   Her dakika +1 tarama hakkı kazanılır (en fazla 5). Skor, sistemin ayakta kaldığı süredir ve en iyi süre rekor olarak saklanır.
 
@@ -135,4 +150,6 @@ icons/icon.svg uygulama ikonu
 
 - Yeni siteler: `game.js` içinde `SITES` nesnesine bir giriş ekleyin.
 - Yeni indirilebilir dosyalar: `DL` nesnesine ekleyin (`payload`: `safe`, `adware`, `ransomware`, `spyware`, `trojan`, `shield`, `theme`).
-- Yeni tehdit türleri: `MAL` tanımı ve `tick()` içinde bir davranış fonksiyonu ekleyin.
+- Yeni tehdit türleri: `MAL` tanımı ekleyin; her saniyeki davranışı `MAL_TICK`, temizlenince yapılacakları `MAL_REMOVED` içine yazın.
+- Yeni bölümler: `MODES.<ad> = { title, setup, intro, tick, widget, notes, lose, ... }` ile kaydedin; ana menüye kendiliğinden eklenir
+  (örnekler: `MODES.retro`, `MODES.escape`, `MODES.office`, `MODES.mod`).
