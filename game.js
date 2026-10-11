@@ -1060,10 +1060,10 @@
     ['OYUN 🎮', 'Bedava 1000 elmas!', 'Al'],
     ['HIZLANDIR 🚀', 'Telefonunuz %87 yavaş!', 'Hızlandır'],
   ];
-  function spawnPopup() {
+  function spawnPopup(list = ADS) {
     const box = $('#popups');
     if (!box || box.children.length >= 6) return;
-    const [h, t, s] = pick(ADS);
+    const [h, t, s] = pick(list);
     const el = document.createElement('div');
     el.className = 'popup';
     const W = box.clientWidth || 360; const H = box.clientHeight || 640;
@@ -2525,6 +2525,147 @@
     },
   });
 
+  // ===========================================================================
+  // ⚽ İŞ YERİNDE MOLA
+  // ===========================================================================
+  const OFFICE_ADS = [
+    ['FORMA 👕', 'Takımının formasını kazan!', 'Hemen katıl'],
+    ['🎵 JİNGIL', 'Laaa la la! En ucuz kola burada!', 'Sesi aç'],
+    ['PİZZA 🍕', 'Maç saati 2 al 1 öde!', 'Sipariş ver'],
+    ['YARIŞMA 🏆', 'Skoru tahmin et, tablet kazan!', 'Tahmin et'],
+    ['DUYURU 📢', 'Canlı yayına reklamsız devam et', 'Abone ol'],
+  ];
+  const OFFICE_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+  const officeWork = () => Math.round(S.office.cells.flat().filter(Boolean).length / 36 * 100);
+  const officeWatching = () => UI.app === 'browser' && UI.br.url === 'canlimac.tv' && !UI.br.src;
+
+  Object.assign(APPS, { rapor: { name: 'Rapor.xls', icon: '📊', title: 'Q3_Satis_Raporu.xls' } });
+  APP_MODES.rapor = ['office'];
+
+  function officeEnd(win, why) {
+    const O = S.office;
+    endScreen(win ? '⚽ Mesai bitti, maç bitti!' : why === 'caught' ? '😠 Patronun odasına çağrıldın' : '📊 Rapor yetişmedi',
+      win ? `Maç <b>Kartallar ${O.home} - ${O.away} Şimşekler</b> bitti ve rapor %${officeWork()} hazır. Patron hiçbir şey anlamadı. 😎`
+        : why === 'caught' ? `Patron ekranında maçı yakaladı. "Mesai saatinde maç mı?!" <br><span class="muted small-t">Dakika: ${O.minute}' · Rapor: %${officeWork()}</span>`
+        : `Maçı sonuna kadar izledin ama rapor yalnızca %${officeWork()} hazır. Patron: "Yarın sabah masamda olsun." 😒`,
+      win, '<button class="primary" style="width:100%;margin-top:10px" data-act="startMode" data-arg="office">⚽ Tekrar Oyna</button>');
+  }
+
+  MODES.office = {
+    title: '⚽ İş Yerinde Mola',
+    setup(s) {
+      s.homepage = 'canlimac.tv';
+      s.scans = 1;
+      s.office = { minute: 0, home: 0, away: 0, events: [], susp: 0, cells: OFFICE_MONTHS.map(() => [0, 0, 0]),
+        boss: 'away', bossAt: 22, bossLeave: 0, hit: 0, adSoundUntil: 0, muted: false, nextAd: 8 };
+    },
+    intro: () => `<h3>⚽ İş Yerinde Mola</h3>
+      <p>Sıkıcı bir pazartesi. Mahalle Kupası finali şu an canlı yayında ve sen ofistesin.</p>
+      <p>Maçı <b>canlimac.tv</b>'den izle (maç yalnızca sen izlerken ilerler), ama <b>👞 ayak seslerini</b> duyunca <b>🗂️ Panik!</b> düğmesine bas ve rapor ekranına dön.</p>
+      <p class="muted small-t">Reklam pop-up'ları ve sesleri patronun dikkatini çeker; durum çubuğundaki 🔊'ye dokunarak sesi kıs. Maç bittiğinde raporun en az %50'si dolu olmalı.</p>`,
+    status() {
+      const O = S.office;
+      return `<span data-act="officeMute" style="cursor:pointer">${O.muted ? '🔇' : O.adSoundUntil > S.time ? '📢' : '🔊'}</span>${O.boss === 'coming' ? ' 👞' : O.boss === 'here' ? ' 😠' : ''}`;
+    },
+    widget() {
+      const O = S.office;
+      return `⚽ <b>${O.minute}'</b> Kartallar ${O.home}-${O.away} Şimşekler &nbsp;·&nbsp; 📊 %${officeWork()}<br>
+        <span class="muted small-t">Patron şüphesi: <b style="color:${O.susp > 60 ? 'var(--bad)' : 'inherit'}">%${Math.round(O.susp)}</b></span>
+        <div class="bar-wrap" style="margin-top:6px"><div class="bar-fill ${O.susp > 60 ? 'hot' : O.susp > 30 ? 'warm' : ''}" style="width:${Math.min(100, O.susp)}%"></div></div>`;
+    },
+    notes: () => `<div class="pad"><div class="card"><b>🗒️ Hayatta kalma rehberi</b>
+      <p class="small-t">• 👞 ayak sesi = 4 sn içinde patron kapıda<br>• 🗂️ Panik! seni rapor ekranına götürür<br>• Pop-up'ları kapatmayı unutma, patron onları da görür<br>• 🔊 → 🔇: reklam sesini kıs<br>• Patron geldiğinde raporla uğraşıyorsan şüphe azalır</p></div></div>`,
+    tick() {
+      const O = S.office;
+      if (!$('#fxPanic')) {
+        const b = document.createElement('button');
+        b.id = 'fxPanic'; b.className = 'mode-fx panic'; b.dataset.act = 'panic'; b.textContent = '🗂️ Panik!';
+        $('#os').appendChild(b);
+      }
+      const watching = officeWatching();
+      // Maç
+      if (watching && S.time % 2 === 0 && O.minute < 90) {
+        O.minute++;
+        if (Math.random() < 0.04) {
+          const home = Math.random() < 0.5;
+          home ? O.home++ : O.away++;
+          O.events.unshift(`${O.minute}' ⚽ GOL! ${home ? 'Kartallar' : 'Şimşekler'}`);
+          toast(`⚽ GOOOL! ${home ? 'Kartallar' : 'Şimşekler'} ${O.home}-${O.away}`, 'ok');
+          if (!O.muted) [523, 659, 784].forEach((f, i) => setTimeout(() => Snd.beep(f, 0.1), i * 120));
+        } else if (Math.random() < 0.05) O.events.unshift(`${O.minute}' 🟨 Sarı kart`);
+      }
+      // Reklamlar
+      if (watching && S.time >= O.nextAd) {
+        O.nextAd = S.time + 9 + Math.floor(Math.random() * 6);
+        spawnPopup(OFFICE_ADS);
+        if (!O.muted) O.adSoundUntil = S.time + 6;
+      }
+      if (O.adSoundUntil > S.time && !O.muted && S.time % 2 === 0) Snd.beep(pick([392, 440, 523, 587]), 0.15);
+      // Patron
+      if (O.boss === 'away' && S.time >= O.bossAt - 4) {
+        O.boss = 'coming';
+        toast('👞 Koridordan ayak sesleri!', 'bad');
+        Snd.step(); setTimeout(() => Snd.step(), 500); setTimeout(() => Snd.step(), 1000);
+        vibrate([60, 200, 60]);
+      } else if (O.boss === 'coming' && S.time >= O.bossAt) {
+        O.boss = 'here'; O.bossLeave = S.time + 4; O.hit = 0;
+        toast('😠 Patron kapıda!', 'bad');
+      }
+      if (O.boss === 'here') {
+        let d = 0;
+        if (watching) d += 12;
+        d += Math.min(15, $('#popups').children.length * 5);
+        if (O.adSoundUntil > S.time && !O.muted) d += 8;
+        if (d) { O.susp += d; if (!O.hit) toast(pick(['Patron: Bu ne?!', 'Patron: Hmm... o ekranda ne var?', 'Patron: Çalışıyor musun sen?']), 'bad'); O.hit += d; }
+        if (S.time >= O.bossLeave) {
+          O.boss = 'away';
+          O.bossAt = S.time + 14 + Math.floor(Math.random() * 14);
+          if (!O.hit && UI.app === 'rapor') { O.susp = Math.max(0, O.susp - 10); toast('Patron: Aferin, çalışıyorsun 👍 (−%10 şüphe)', 'ok'); }
+          else if (!O.hit) toast('Patron uzaklaştı... 😮‍💨');
+        }
+      }
+      if (O.susp >= 100) { officeEnd(false, 'caught'); return true; }
+      if (O.minute >= 90) { officeWork() >= 50 ? officeEnd(true) : officeEnd(false, 'report'); return true; }
+      if (watching && Date.now() - UI.touch > 900) renderApp();
+      return false;
+    },
+    lose() { officeEnd(false, 'caught'); },
+    apps: { rapor: renderRapor },
+  };
+
+  function renderRapor() {
+    const O = S.office;
+    return `<div class="pad">
+      <div class="card small-t">📊 Doluluk: <b>%${officeWork()}</b> (en az %50 gerekli) · Hücreye dokunarak doldur.</div>
+      <table class="xls"><thead><tr><th>Ay</th><th>Satış</th><th>Gider</th><th>Kâr</th></tr></thead><tbody>
+      ${OFFICE_MONTHS.map((m, r) => `<tr><td>${m}</td>${O.cells[r].map((v, c) => `<td>${v ? v.toLocaleString('tr-TR') : `<button class="cell" data-act="cell" data-arg="${r}:${c}">—</button>`}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  Object.assign(SITES, {
+    'canlimac.tv': {
+      title: 'CanlıMaç TV — Amatör Lig', rep: 'orta', keys: '', hiddenFromSearch: true,
+      html: () => {
+        const O = S.office;
+        return `<h1>📺 CanlıMaç TV</h1><p class="muted small-t">Mahalle Kupası Finali · ücretsiz amatör lig yayını</p>
+          <div class="pitch"><div class="ball">⚽</div><div class="score">Kartallar <b>${O.home} - ${O.away}</b> Şimşekler</div><div class="minute">${O.minute >= 90 ? 'MS' : O.minute + "'"}</div></div>
+          <div class="card small-t">${O.events.slice(0, 5).map((e) => `<div>${e}</div>`).join('') || 'Maç başladı!'}</div>
+          <div class="site-spam pad" style="border-radius:10px"><div class="ad">🍕 MAÇ SAATİ PİZZA: 2 AL 1 ÖDE 🍕</div></div>`;
+      },
+    },
+  });
+
+  Object.assign(EXTRA_ACTS, {
+    panic: () => { if (!S.office) return; openApp('rapor'); Snd.beep(330, 0.05); },
+    officeMute: () => { const O = S.office; O.muted = !O.muted; toast(O.muted ? '🔇 Ses kapatıldı' : '🔊 Ses açıldı'); renderStatus(); },
+    cell: (arg) => {
+      const [r, c] = arg.split(':').map(Number);
+      S.office.cells[r][c] = 1000 + Math.floor(Math.random() * 9000);
+      Snd.beep(1200, 0.02);
+      renderApp();
+    },
+  });
+
   // ---------------------------------------------------------------------------
   // Modal ve bildirimler
   // ---------------------------------------------------------------------------
@@ -2612,7 +2753,11 @@
       el.closest('.popup').remove();
       if (hasMal('adware') && Math.random() < 0.35) setTimeout(spawnPopup, 400);
     },
-    popClick: (_, el) => { el.closest('.popup').remove(); ACT.go('superarama.biz'); },
+    popClick: (_, el) => {
+      el.closest('.popup').remove();
+      if (S.office) { spawnPopup(OFFICE_ADS); spawnPopup(OFFICE_ADS); toast('Bir reklam daha açıldı... ve bir tane daha!', 'bad'); return; }
+      ACT.go('superarama.biz');
+    },
     termQuick: (c) => runCmd(c),
     toggleSound: () => { S.sound = !S.sound; Snd.init(); Snd.fan(S.cpu); renderApp(); save(); },
     survival: () => { closeModal(); startGame(newState('survival'), true); },
