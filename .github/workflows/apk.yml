@@ -31,7 +31,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      # Android SDK, GitHub'ın ubuntu sunucularında hazır kurulu gelir ($ANDROID_HOME).
+      - name: Android SDK'yı doğrula
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - uses: gradle/actions/setup-gradle@v4
 

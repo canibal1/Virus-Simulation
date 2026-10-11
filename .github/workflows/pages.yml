@@ -21,12 +21,30 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Pages açık değilse hata vermek yerine not düşüp atla.
+      # Açmak için: Settings → Pages → Source: GitHub Actions
+      - name: Pages açık mı?
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" >/dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::GitHub Pages kapalı. Settings → Pages → Source: GitHub Actions seçilince oyun yayınlanır."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.check.outputs.enabled == 'true'
       - uses: actions/configure-pages@v5
+        if: steps.check.outputs.enabled == 'true'
       - name: Yayın klasörünü hazırla
+        if: steps.check.outputs.enabled == 'true'
         run: |
           mkdir _site
           cp -r index.html style.css game.js manifest.json sw.js icons _site/
       - uses: actions/upload-pages-artifact@v3
+        if: steps.check.outputs.enabled == 'true'
       - id: deployment
+        if: steps.check.outputs.enabled == 'true'
         uses: actions/deploy-pages@v4
