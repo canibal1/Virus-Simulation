@@ -1,0 +1,15 @@
+{
+  "name": "Sanal OS",
+  "short_name": "Sanal OS",
+  "description": "Sanal bir telefon işletim sistemi içinde geçen dedektiflik ve hayatta kalma oyunu.",
+  "lang": "tr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b0f17",
+  "theme_color": "#0b0f17",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

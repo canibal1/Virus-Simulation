@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0f17">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Sanal OS: sanal bir telefon işletim sistemi içinde geçen dedektiflik ve hayatta kalma oyunu.">
+  <title>Sanal OS</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="phone">
+    <!-- Açılış ekranı -->
+    <section id="boot" class="screen">
+      <pre id="bootLog"></pre>
+      <div id="bootMenu" class="hidden"></div>
+    </section>
+
+    <!-- Masaüstü / işletim sistemi -->
+    <section id="os" class="screen hidden">
+      <div id="wall"></div>
+      <header id="bar">
+        <span id="clock">23:47</span>
+        <span class="bar-right">
+          <span id="cam" class="cam" title="Kamera"></span>
+          <span id="mCpu" class="meter">CPU 0%</span>
+          <span id="mTemp" class="meter">40°C</span>
+          <span id="mLives" class="lives"></span>
+        </span>
+      </header>
+      <main id="home"></main>
+      <nav id="dock"></nav>
+
+      <section id="win" class="hidden">
+        <div class="win-head">
+          <button class="win-back" data-act="close" aria-label="Kapat">‹</button>
+          <span id="winTitle"></span>
+        </div>
+        <div id="winBody"></div>
+      </section>
+
+      <div id="popups"></div>
+      <div id="wiper" class="hidden"><pre></pre></div>
+      <div id="modal" class="hidden"><div class="modal-card"></div></div>
+      <div id="toasts"></div>
+      <div id="ghost" aria-hidden="true"></div>
+    </section>
+
+    <!-- Mavi ekran -->
+    <section id="bsod" class="screen hidden"></section>
+
+    <!-- Oyun sonu -->
+    <section id="ending" class="screen hidden"></section>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
