@@ -632,6 +632,8 @@
   // Pencere yönetimi
   // ---------------------------------------------------------------------------
   function openApp(id) {
+    const blocked = modeHook('blockApp', id);
+    if (blocked) { toast(blocked, 'bad'); Snd.beep(160, 0.15); return; }
     if (S.ai && S.ai.locked[id] > S.time) { toast(`🔒 ECHO bu uygulamaya erişimi engelledi (${S.ai.locked[id] - S.time} sn)`, 'bad'); Snd.beep(160, 0.15); return; }
     UI.app = id;
     if (id === 'browser' && !UI.br.url) UI.br.url = S.homepage;
@@ -806,6 +808,7 @@
     const b = UI.br;
     const site = SITES[b.url] || SITES['chronos://ana'];
     if (site.onVisit) site.onVisit();
+    if (b.src && site.onSource) site.onSource();
     if (b.src && site.extraSource && b.url === 'forum.yeraltinet.com' && !S.flags.p1) {
       S.flags.p1 = true;
       toast('🔑 Parça 1 bulundu: KR0', 'ok');
@@ -890,6 +893,7 @@
     if (f.kind === 'ares') { openAres(); return; }
     if (f.kind === 'txt') {
       UI.view = f.id;
+      modeHook('readFile', f);
       if (f.flag && !S.flags[f.flag]) {
         S.flags[f.flag] = true;
         toast(`🔑 Parça ${f.flag.slice(1)} bulundu!`, 'ok');
@@ -2005,6 +2009,7 @@
         else if (f.kind !== 'txt') tprint('cat: ikili dosya okunamaz', 'err');
         else {
           tprint(f.text);
+          modeHook('readFile', f);
           if (f.flag && !S.flags[f.flag]) { S.flags[f.flag] = true; toast(`🔑 Parça ${f.flag.slice(1)} bulundu!`, 'ok'); save(); }
         }
         break;
@@ -2373,6 +2378,149 @@
       if (R.online || R.reconnectAt) return;
       R.reconnectAt = S.time + 4;
       Snd.dialup();
+      renderApp();
+    },
+  });
+
+  // ===========================================================================
+  // 🔐 KAÇIŞ ODASI
+  // ===========================================================================
+  const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+  const ESC_FRUITS = ['🍎', '🍌', '🍒', '🍇'];
+  const ESC_TAUNTS = ['Tik tak. ⏳', 'Dosyaların seni özlüyor. 😈', 'Bu kadar yavaş mı düşünürsün?', 'Belki de hiç çıkamayacaksın.', 'İpucu: ben asla yalan söylemem. Ya da söylerim.'];
+  const mmss = (t) => `${String(Math.floor(Math.max(0, t) / 60)).padStart(2, '0')}:${String(Math.max(0, t) % 60).padStart(2, '0')}`;
+
+  Object.assign(APPS, { kilit: { name: 'Kilit Ekranı', icon: '🔐', title: 'Kilit Ekranı' } });
+  APP_MODES.kilit = ['escape'];
+
+  function escPenalty(sec, msg) {
+    const E = S.esc;
+    E.left = Math.max(0, E.left - sec);
+    glitch(); vibrate(120); Snd.beep(140, 0.25);
+    toast(sec ? `⏳ −${sec} sn · RM: ${msg}` : `⏩ RM: ${msg}`, 'bad');
+    renderHome();
+  }
+
+  function escEnd(win) {
+    const E = S.esc;
+    endScreen(win ? '🔓 Kurtuldun!' : '💀 Süre doldu',
+      win ? `Üç kodu da buldun ve kilidi açtın. Ransom Master'ın son mesajı: <i>"Bu sefer kazandın."</i><br><span class="muted small-t">Kalan süre: ${mmss(E.left)} · Yanlış deneme: ${E.tries}</span>`
+        : 'Sayaç sıfırlandı. Ransom Master oyundaki tüm dosyaları sildi.<br><span class="muted small-t">Kodlar her oyunda değişir. Tekrar dene!</span>',
+      win, '<button class="primary" style="width:100%;margin-top:10px" data-act="startMode" data-arg="escape">🔐 Tekrar Oyna</button>');
+  }
+
+  MODES.escape = {
+    title: '🔐 Kaçış Odası',
+    liveApps: ['kilit'],
+    setup(s) {
+      s.homepage = 'ransommaster.lock';
+      s.scans = 0;
+      const c1 = String(1000 + Math.floor(Math.random() * 9000));
+      const digits = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, 4);
+      const map = {}; ESC_FRUITS.forEach((f, i) => { map[f] = digits[i]; });
+      const seq = [0, 1, 2, 3].map(() => pick(ESC_FRUITS));
+      const c2 = seq.map((f) => map[f]).join('');
+      const c3 = String(+c1 + +c2);
+      s.esc = { left: 480, fast: 0, c1, c2, c3, map, seq, tries: 0, found: {}, nextTaunt: 40, ok: [false, false, false] };
+      addFile({ name: 'oku_beni.txt', dir: 'masaustu', kind: 'txt', size: '1 KB',
+        text: 'Merhaba. Ben Ransom Master. 😈\n\nDosyalarının kilidini açmak için 3 koda ihtiyacın var:\n\n• Birini çöpe attım. Ters duruyor.\n• Biri sitemde, ama gözlerin onu göremez.\n• Sonuncusu gizli. Terminal "ls" der, sen fazlasını iste.\n\nKodları 🔐 Kilit Ekranı\'na gir.\nSüren dolduğunda her şey silinir. Bol şans.' });
+      addFile({ name: 'Kurtarici.exe', dir: 'masaustu', kind: 'exe', size: '66 KB', payload: 'escTrap' });
+      addFile({ name: 'ters.txt', dir: 'belgeler', kind: 'txt', size: '1 KB', trash: true,
+        text: `KOD 1 (ters yazıldı):\n\n   ${c1.split('').reverse().join(' - ')}\n\nSoldan sağa değil, sağdan sola oku.` });
+      addFile({ name: '.anahtar', dir: 'belgeler', kind: 'txt', size: '1 KB', hidden: true,
+        text: 'KOD 3\n\nKod 3 = Kod 1 + Kod 2\n(İki sayıyı topla.)' });
+    },
+    intro: () => `<h3>🔐 Kaçış Odası</h3>
+      <p><b>Ransom Master</b> bilgisayarının kontrolünü ele geçirdi ve masaüstünü kilitledi. Ekranda bir sayaç var: <b>08:00</b>.</p>
+      <p>Masaüstündeki notu oku, ipuçlarını birleştir ve üç kodu <b>🔐 Kilit Ekranı</b>'na gir.</p>
+      <p class="muted small-t">Tuzaklara dikkat: yanlış bağlantılar ve "kurtarıcı" programlar süreni kısaltır.</p>`,
+    status: () => `⏳ ${mmss(S.esc.left)}`,
+    blockApp: (id) => (id === 'av' ? '🛡️ Kalkan devre dışı. RM: "Antivirüs mü? Ha ha."' : ''),
+    widget() {
+      const E = S.esc;
+      const n = Object.keys(E.found).length;
+      return `🔐 Kalan süre: <b style="color:${E.left < 60 ? 'var(--bad)' : 'inherit'}">${mmss(E.left)}</b>${E.fast > S.time ? ' <b style="color:var(--bad)">⏩ x2</b>' : ''}
+        &nbsp;·&nbsp; 🧩 İpucu <b>${n}/3</b><br><span class="muted small-t">Kodları 🔐 Kilit Ekranı'na gir.</span>`;
+    },
+    notes() {
+      const E = S.esc;
+      return `<div class="pad"><div class="card"><b>🧩 İpuçları</b>
+        <div class="obj ${E.found.c1 ? 'done' : ''}"><span>${E.found.c1 ? '☑' : '☐'}</span><span>Kod 1: çöpte, ters duruyor</span></div>
+        <div class="obj ${E.found.c2 ? 'done' : ''}"><span>${E.found.c2 ? '☑' : '☐'}</span><span>Kod 2: sitede ama görünmüyor (</> ?)</span></div>
+        <div class="obj ${E.found.c3 ? 'done' : ''}"><span>${E.found.c3 ? '☑' : '☐'}</span><span>Kod 3: gizli dosya (ls -a ?)</span></div></div>
+        <div class="card"><b>✏️ Karalama</b><textarea id="notesArea" class="field" style="margin-top:8px" placeholder="Kodları buraya not al...">${esc(S.notes)}</textarea></div></div>`;
+    },
+    tick() {
+      const E = S.esc;
+      E.left -= E.fast > S.time ? 2 : 1;
+      if (E.left <= 30 && E.left > 28) { Snd.beep(880, 0.1); vibrate(80); }
+      if (S.time >= E.nextTaunt) { E.nextTaunt = S.time + 45; toast('😈 RM: ' + pick(ESC_TAUNTS), 'bad'); }
+      if (E.left <= 0) { escEnd(false); return true; }
+      return false;
+    },
+    lose() { escEnd(false); },
+    readFile(f) {
+      const E = S.esc;
+      if (f.name === 'ters.txt') E.found.c1 = true;
+      if (f.name === '.anahtar') E.found.c3 = true;
+    },
+    openFile(f) {
+      if (f.payload === 'escTrap') { escPenalty(60, 'Bunu açacağını biliyordum. 😈'); return true; }
+      return false;
+    },
+    apps: { kilit: renderKilit },
+  };
+
+  function renderKilit() {
+    const E = S.esc;
+    return `<div class="pad" style="text-align:center">
+      <div style="font-size:52px">🔐</div>
+      <div class="lock-timer ${E.left < 60 ? 'hot' : ''}">${mmss(E.left)}</div>
+      <p class="muted small-t">${E.fast > S.time ? '⏩ Sayaç iki kat hızlı akıyor!' : 'Süre dolduğunda tüm dosyalar silinecek.'}</p>
+      ${[1, 2, 3].map((i) => `<div class="search-box" style="margin:10px 0">
+        <span style="align-self:center;width:86px;text-align:left;white-space:nowrap">Kod ${i} ${E.ok[i - 1] ? "✅" : ""}</span>
+        <input id="escCode${i}" data-keep class="field" inputmode="numeric" autocomplete="off" placeholder="????"></div>`).join('')}
+      <button class="primary" style="width:100%" data-act="escUnlock">🔓 Kilidi Aç</button>
+      <p class="muted small-t">Yanlış deneme: −30 sn</p></div>`;
+  }
+
+  Object.assign(SITES, {
+    'ransommaster.lock': {
+      title: 'RANSOM MASTER', rep: 'cok-riskli', keys: '', hiddenFromSearch: true,
+      extraSource: '',
+      onSource() { S.esc.found.c2 = true; },
+      html: () => {
+        const E = S.esc;
+        return `<div class="site-dark pad" style="text-align:center"><div style="font-size:60px">👁️</div><h1>RANSOM MASTER</h1>
+          <p>Dosyaların bende. Kodların biri bu sayfada... ama gözlerin onu göremez.</p>
+          <div class="post"><b>Meyve sözlüğü</b><br><span style="font-size:22px">${ESC_FRUITS.map((f) => `${f}=${E.map[f]}`).join(' &nbsp; ')}</span></div>
+          <div class="post" style="text-align:left">
+            <button class="danger" style="width:100%;margin-bottom:8px" data-act="escTrap" data-arg="pay">💸 Fidyeyi öde (0.5 KRP) ve kurtul</button>
+            <button style="width:100%;margin-bottom:8px" data-act="escTrap" data-arg="buy">🔑 Kod 2'yi satın al</button>
+            <button style="width:100%" data-act="escTrap" data-arg="pause">⏸️ Sayacı durdur</button>
+          </div></div>`;
+      },
+    },
+  });
+  // Kaynak koddaki gizli dizi (her oyunda değişir)
+  Object.defineProperty(SITES['ransommaster.lock'], 'extraSource', {
+    get: () => (S && S.esc ? `  <!-- kod 2: ${S.esc.seq.join(' ')} -->\n` : ''),
+  });
+
+  Object.assign(EXTRA_ACTS, {
+    escTrap: (k) => {
+      if (k === 'pay') escPenalty(60, 'Paranı aldım. Kod mu? Ha ha ha.');
+      else if (k === 'buy') escPenalty(60, 'Kod satılık değil. Zaman ise... satılık. 😈');
+      else { S.esc.fast = S.time + 30; escPenalty(0, 'Durdurmak mı? Ben hızlandırırım. ⏩'); }
+      if (UI.app === 'browser') renderApp();
+    },
+    escUnlock: () => {
+      const E = S.esc;
+      const vals = [1, 2, 3].map((i) => (($('#escCode' + i) || {}).value || '').trim());
+      E.ok = [vals[0] === E.c1, vals[1] === E.c2, vals[2] === E.c3];
+      if (E.ok.every(Boolean)) { escEnd(true); return; }
+      E.tries++;
+      escPenalty(30, 'Yanlış! 😈');
       renderApp();
     },
   });

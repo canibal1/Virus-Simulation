@@ -418,6 +418,12 @@ textarea.field { width: 100%; min-height: 140px; resize: vertical; font-family: 
 }
 marquee { color: #c00; font-weight: bold; }
 
+/* ---------- Kaçış Odası ---------- */
+#os[data-mode="escape"] #wall { background: radial-gradient(80% 60% at 50% 30%, #3a0010 0%, #12000a 60%, #050003 100%); animation: pulse 3s ease-in-out infinite; }
+@keyframes pulse { 50% { filter: brightness(1.35); } }
+.lock-timer { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 54px; letter-spacing: 2px; margin: 6px 0; }
+.lock-timer.hot { color: var(--bad); animation: blink 1s steps(2) infinite; }
+
 /* ---------- Mavi ekran ---------- */
 #bsod { background: #0a59c9; color: #fff; padding: calc(60px + var(--safe-top)) 26px 30px; z-index: 100; }
 #bsod .sad { font-size: 90px; line-height: 1; margin-bottom: 24px; }
